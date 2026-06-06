@@ -1,0 +1,104 @@
+import { useApiMutation, useApiQuery, queryKeys } from "@/api";
+import { getErrorMessage } from "@/api/utils/errorHandler";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import EmptyState from "@/components/EmptyState";
+import LoadingScreen from "@/components/LoadingScreen";
+import { useGlobalStyles } from "@/styles/global";
+import { buildImageUrl } from "@/utils/imageUrl";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useState } from "react";
+import { Alert, FlatList, Image, RefreshControl, Text, TouchableOpacity, View } from "react-native";
+
+export default function ProductsScreen() {
+  const { plate, gs } = useGlobalStyles();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const { data, refetch, isLoading } = useApiQuery<any>({
+    url: "products",
+    queryKey: queryKeys.products.list({ limit: "100" }),
+    params: { limit: 100 },
+  });
+
+  const deleteMutation = useApiMutation<any, any>({
+    method: "delete",
+    url: "",
+    options: {
+      onSuccess: () => { refetch(); Alert.alert("Deleted"); },
+      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onSettled: () => setDeleteId(null),
+    },
+  });
+
+  const products = (data as any)?.data ?? [];
+
+  const renderProduct = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={[gs.listItem, { paddingLeft: 0 }]}
+      onPress={() => router.push({ pathname: "/(drawer)/(tabs)/product-form" as any, params: { id: item._id } })}
+    >
+      <Image
+        source={{ uri: buildImageUrl(item.images?.[0]) }}
+        style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: plate.gray, marginRight: 12 }}
+      />
+      <View style={{ flex: 1 }}>
+        <Text style={gs.label} numberOfLines={1}>{item.name}</Text>
+        <Text style={[gs.caption]}>
+          ${item.price?.toLocaleString()} | Stock: {item.stock ?? 0}
+        </Text>
+      </View>
+      <View style={[gs.containerRow, { gap: 4 }]}>
+        {!item.isActive ? (
+          <View style={[gs.badge, { backgroundColor: plate.red + "20" }]}>
+            <Text style={[gs.badgeText, { color: plate.red, fontSize: 10 }]}>INACTIVE</Text>
+          </View>
+        ) : null}
+        <TouchableOpacity
+          onPress={() => setDeleteId(item._id)}
+          style={{ padding: 8 }}
+        >
+          <Ionicons name="trash-outline" size={18} color={plate.red} />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (isLoading) return <LoadingScreen />;
+
+  return (
+    <View style={gs.safeArea}>
+      <View style={[gs.containerRow, { padding: 16, backgroundColor: plate.backgroundSecond, borderBottomWidth: 1, borderBottomColor: plate.gray }]}>
+        <Text style={[gs.h3, { flex: 1 }]}>Products</Text>
+        <TouchableOpacity onPress={() => refetch()} style={{ marginRight: 12 }}>
+          <Ionicons name="refresh" size={22} color={plate.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push({ pathname: "/(drawer)/(tabs)/product-form" as any })}
+          style={[gs.buttonSmall, { backgroundColor: plate.primary, paddingHorizontal: 16 }]}
+        >
+          <Ionicons name="add" size={18} color={plate.background} />
+          <Text style={[gs.buttonText, { fontSize: 14, marginLeft: 4 }]}>Add</Text>
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={products}
+        keyExtractor={(item: any) => item._id}
+        renderItem={renderProduct}
+        contentContainerStyle={[gs.container, products.length === 0 && { flex: 1 }]}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+        ListEmptyComponent={<EmptyState icon="cube-outline" title="No products" subtitle="Tap Add to create one" />}
+      />
+
+      <ConfirmDialog
+        visible={!!deleteId}
+        title="Delete Product"
+        message="Are you sure? This cannot be undone."
+        confirmLabel="Delete"
+        confirmDanger
+        onConfirm={() => deleteId && deleteMutation.mutate(null, {})}
+        onCancel={() => setDeleteId(null)}
+      />
+    </View>
+  );
+}
