@@ -1,4 +1,4 @@
-import { useApiMutation, useApiQuery, queryKeys } from "@/api";
+import { getApiClient, useApiMutation, useApiQuery, queryKeys } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import FormField from "@/components/FormField";
 import ImageField from "@/components/ImageField";
@@ -7,6 +7,7 @@ import PickerSelect from "@/components/PickerSelect";
 import SectionHeader from "@/components/SectionHeader";
 import { useGlobalStyles } from "@/styles/global";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -34,6 +35,39 @@ export default function ProductFormScreen() {
   const [notesAr, setNotesAr] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleAddImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission required", "Camera roll permission is needed to add images");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    try {
+      const localUri = result.assets[0].uri;
+      const filename = localUri.split("/").pop() || "image.jpg";
+      const formData = new FormData();
+      formData.append("images", {
+        uri: localUri,
+        name: filename,
+        type: "image/jpeg",
+      } as any);
+
+      const client = getApiClient();
+      const response = await client.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const filenames: string[] = response.data?.data ?? [];
+      setImages((prev) => [...prev, ...filenames]);
+    } catch (err) {
+      Alert.alert("Upload Error", getErrorMessage(err));
+    }
+  };
 
   const { data, isLoading: loadingData } = useApiQuery<any>({
     url: `products/${id}`,
@@ -237,11 +271,7 @@ export default function ProductFormScreen() {
         <ImageField
           images={images}
           label="Images"
-          onAdd={() => {
-            Alert.prompt?.("Add Image URL", "Enter image URL or filename", (url) => {
-              if (url?.trim()) setImages([...images, url.trim()]);
-            });
-          }}
+          onAdd={handleAddImage}
           onRemove={(i) => setImages(images.filter((_, idx) => idx !== i))}
         />
 

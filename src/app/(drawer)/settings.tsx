@@ -52,7 +52,7 @@ export default function SettingsScreen() {
   const themeLabels: Record<string, string> = { system: "System", light: "Light", dark: "Dark" };
 
   return (
-    <ScrollView style={gs.safeArea} contentContainerStyle={[gs.container, gs.scrollContent]}>
+    <ScrollView style={gs.safeArea} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
       <Text style={[gs.h2, { marginTop: 16, marginBottom: 24 }]}>Settings</Text>
 
       <View style={[gs.card, { padding: 16 }]}>

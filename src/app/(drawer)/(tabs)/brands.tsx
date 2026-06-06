@@ -1,10 +1,11 @@
-import { useApiMutation, useApiQuery, queryKeys } from "@/api";
+import { getApiClient, useApiQuery, queryKeys } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useGlobalStyles } from "@/styles/global";
 import { Ionicons } from "@expo/vector-icons";
+import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
@@ -19,13 +20,11 @@ export default function BrandsScreen() {
     params: { limit: 200 },
   });
 
-  const deleteMutation = useApiMutation<any, any>({
-    method: "delete", url: "",
-    options: {
-      onSuccess: () => { refetch(); Alert.alert("Deleted"); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
-      onSettled: () => setDeleteId(null),
-    },
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => getApiClient().delete(`brands/${id}`).then(r => r.data),
+    onSuccess: () => { refetch(); Alert.alert("Deleted"); },
+    onError: (err: any) => Alert.alert("Error", getErrorMessage(err)),
+    onSettled: () => setDeleteId(null),
   });
 
   const brands = (data as any)?.data ?? [];
@@ -88,7 +87,7 @@ export default function BrandsScreen() {
         message="Are you sure?"
         confirmLabel="Delete"
         confirmDanger
-        onConfirm={() => {}}
+        onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         onCancel={() => setDeleteId(null)}
       />
     </View>
