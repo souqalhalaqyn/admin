@@ -20,6 +20,13 @@
     },
     "production": {
       "channel": "production"
+    },
+    "production-sideload": {
+      "distribution": "internal",
+      "channel": "production",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
