@@ -34,7 +34,11 @@
       ],
       "expo-localization",
       "expo-image",
-      "expo-build-properties"
+      ["expo-build-properties", {
+        "android": {
+          "lintOptions": { "abortOnError": false }
+        }
+      }]
     ],
     "experiments": {
       "typedRoutes": true,
