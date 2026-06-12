@@ -9,10 +9,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, FlatList, Image, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 
 export default function ProductsScreen() {
   const { plate, gs } = useGlobalStyles();
+  const { t } = useTranslation();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data, refetch, isLoading } = useApiQuery<any>({
@@ -23,8 +25,8 @@ export default function ProductsScreen() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => getApiClient().delete(`products/${id}`).then(r => r.data),
-    onSuccess: () => { refetch(); Alert.alert("Deleted"); },
-    onError: (err: any) => Alert.alert("Error", getErrorMessage(err)),
+    onSuccess: () => { refetch(); Alert.alert(t("common.deleted")); },
+    onError: (err: any) => Alert.alert(t("common.error"), getErrorMessage(err)),
     onSettled: () => setDeleteId(null),
   });
 
@@ -42,13 +44,13 @@ export default function ProductsScreen() {
       <View style={{ flex: 1 }}>
         <Text style={gs.label} numberOfLines={1}>{item.name}</Text>
         <Text style={[gs.caption]}>
-          ${item.price?.toLocaleString()} | Stock: {item.stock ?? 0}
+          ${item.price?.toLocaleString()} | {t("product.stockLabel", { stock: item.stock ?? 0 })}
         </Text>
       </View>
       <View style={[gs.containerRow, { gap: 4 }]}>
         {!item.isActive ? (
           <View style={[gs.badge, { backgroundColor: plate.red + "20" }]}>
-            <Text style={[gs.badgeText, { color: plate.red, fontSize: 10 }]}>INACTIVE</Text>
+            <Text style={[gs.badgeText, { color: plate.red, fontSize: 10 }]}>{t("product.inactiveBadge")}</Text>
           </View>
         ) : null}
         <TouchableOpacity
@@ -66,7 +68,7 @@ export default function ProductsScreen() {
   return (
     <View style={gs.safeArea}>
       <View style={[gs.containerRow, { padding: 16, backgroundColor: plate.backgroundSecond, borderBottomWidth: 1, borderBottomColor: plate.gray }]}>
-        <Text style={[gs.h3, { flex: 1 }]}>Products</Text>
+        <Text style={[gs.h3, { flex: 1 }]}>{t("product.listTitle")}</Text>
         <TouchableOpacity onPress={() => refetch()} style={{ marginRight: 12 }}>
           <Ionicons name="refresh" size={22} color={plate.primary} />
         </TouchableOpacity>
@@ -75,7 +77,7 @@ export default function ProductsScreen() {
           style={[gs.buttonSmall, { backgroundColor: plate.primary, paddingHorizontal: 16 }]}
         >
           <Ionicons name="add" size={18} color={plate.background} />
-          <Text style={[gs.buttonText, { fontSize: 14, marginLeft: 4 }]}>Add</Text>
+          <Text style={[gs.buttonText, { fontSize: 14, marginLeft: 4 }]}>{t("product.addButton")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -85,14 +87,14 @@ export default function ProductsScreen() {
         renderItem={renderProduct}
         contentContainerStyle={[gs.container, products.length === 0 && { flex: 1 }]}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
-        ListEmptyComponent={<EmptyState icon="cube-outline" title="No products" subtitle="Tap Add to create one" />}
+        ListEmptyComponent={<EmptyState icon="cube-outline" title={t("product.emptyTitle")} subtitle={t("product.emptySubtitle")} />}
       />
 
       <ConfirmDialog
         visible={!!deleteId}
-        title="Delete Product"
-        message="Are you sure? This cannot be undone."
-        confirmLabel="Delete"
+        title={t("product.deleteConfirmTitle")}
+        message={t("product.deleteConfirmMessage")}
+        confirmLabel={t("product.deleteConfirmButton")}
         confirmDanger
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         onCancel={() => setDeleteId(null)}

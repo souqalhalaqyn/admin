@@ -2,7 +2,7 @@ import { getApiClient, setApiToken, configureApi } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import { APP_PREFIX } from "@/config/constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 const AUTH_STORAGE_KEY = `${APP_PREFIX}:auth`;
 const STORAGE_PREFIX = `${APP_PREFIX}:`;
@@ -33,6 +33,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const tokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (stored) {
           const parsed = JSON.parse(stored) as { user: AuthUser; accessToken: string; refreshToken: string };
           setUser(parsed.user);
+          tokensRef.current = { accessToken: parsed.accessToken, refreshToken: parsed.refreshToken };
           setApiToken(parsed.accessToken);
         }
       } catch {
@@ -51,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const onUnauthorized = useCallback(() => {
+    tokensRef.current = null;
     clearAppStorage().then(() => {
       setUser(null);
       setApiToken(null);
@@ -58,10 +61,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    configureApi({ onUnauthorized });
-  }, [onUnauthorized]);
+    configureApi({
+      onUnauthorized,
+      getRefreshToken: () => tokensRef.current?.refreshToken ?? null,
+      onRefresh: (accessToken: string, refreshToken: string) => {
+        const currentUser = user;
+        if (currentUser) {
+          tokensRef.current = { accessToken, refreshToken };
+          AsyncStorage.setItem(
+            AUTH_STORAGE_KEY,
+            JSON.stringify({ user: currentUser, accessToken, refreshToken }),
+          );
+        }
+      },
+    });
+  }, [onUnauthorized, user]);
 
   const saveAuth = async (userData: AuthUser, accessToken: string, refreshToken: string) => {
+    tokensRef.current = { accessToken, refreshToken };
     await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: userData, accessToken, refreshToken }));
     setUser(userData);
     setApiToken(accessToken);
@@ -85,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await getApiClient().post("auth/logout");
     } catch {
     } finally {
+      tokensRef.current = null;
       await clearAppStorage();
       setUser(null);
       setApiToken(null);

@@ -10,11 +10,13 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, router } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function ProductFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
+  const { t } = useTranslation();
   const isEditing = !!id;
 
   const [nameEn, setNameEn] = useState("");
@@ -39,7 +41,7 @@ export default function ProductFormScreen() {
   const handleAddImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission required", "Camera roll permission is needed to add images");
+      Alert.alert(t("common.permissionRequired"), t("productForm.permissionMessage"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -65,7 +67,7 @@ export default function ProductFormScreen() {
       const filenames: string[] = response.data?.data ?? [];
       setImages((prev) => [...prev, ...filenames]);
     } catch (err) {
-      Alert.alert("Upload Error", getErrorMessage(err));
+      Alert.alert(t("common.uploadError"), getErrorMessage(err));
     }
   };
 
@@ -110,27 +112,27 @@ export default function ProductFormScreen() {
   const createMutation = useApiMutation<any, any>({
     method: "post", url: "products",
     options: {
-      onSuccess: () => { Alert.alert("Success", "Product created"); router.back(); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onSuccess: () => { Alert.alert(t("common.success"), t("productForm.created")); router.back(); },
+      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
   const updateMutation = useApiMutation<any, any>({
     method: "put", url: `products/${id}`,
     options: {
-      onSuccess: () => { Alert.alert("Success", "Product updated"); router.back(); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onSuccess: () => { Alert.alert(t("common.success"), t("productForm.updated")); router.back(); },
+      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!nameEn.trim()) e.nameEn = "Name (English) is required";
-    if (!nameAr.trim()) e.nameAr = "Name (Arabic) is required";
-    if (!shortDescriptionEn.trim()) e.shortDescriptionEn = "Short description (English) is required";
-    if (!shortDescriptionAr.trim()) e.shortDescriptionAr = "Short description (Arabic) is required";
-    if (!price || isNaN(Number(price)) || Number(price) <= 0) e.price = "Valid price is required";
-    if (!containerId) e.containerId = "Container is required";
+    if (!nameEn.trim()) e.nameEn = t("productForm.validationNameEnRequired");
+    if (!nameAr.trim()) e.nameAr = t("productForm.validationNameArRequired");
+    if (!shortDescriptionEn.trim()) e.shortDescriptionEn = t("productForm.validationShortDescEnRequired");
+    if (!shortDescriptionAr.trim()) e.shortDescriptionAr = t("productForm.validationShortDescArRequired");
+    if (!price || isNaN(Number(price)) || Number(price) <= 0) e.price = t("productForm.validationPriceRequired");
+    if (!containerId) e.containerId = t("productForm.validationContainerRequired");
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -169,64 +171,64 @@ export default function ProductFormScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
           <Ionicons name="arrow-back" size={24} color={plate.text} />
         </TouchableOpacity>
-        <Text style={[gs.h3, { marginLeft: 12, flex: 1 }]}>{isEditing ? "Edit Product" : "New Product"}</Text>
+        <Text style={[gs.h3, { marginLeft: 12, flex: 1 }]}>{isEditing ? t("productForm.editTitle") : t("productForm.newTitle")}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: 20, backgroundColor: plate.background }} keyboardShouldPersistTaps="handled">
-        <SectionHeader title="Basic Information" subtitle="Name, description, and pricing" />
+        <SectionHeader title={t("productForm.basicInfo")} subtitle={t("productForm.basicInfoSub")} />
 
         <FormField
-          label="Name (English)"
+          label={t("productForm.nameEn")}
           value={nameEn}
           onChangeText={setNameEn}
-          placeholder="e.g. Hair Dryer Pro"
+          placeholder={t("productForm.nameEnPlaceholder")}
           required
           error={errors.nameEn}
         />
 
         <FormField
-          label="Name (Arabic)"
+          label={t("productForm.nameAr")}
           value={nameAr}
           onChangeText={setNameAr}
-          placeholder="اسم المنتج"
+          placeholder={t("productForm.nameArPlaceholder")}
           required
           error={errors.nameAr}
         />
 
         <FormField
-          label="Short Description (English)"
+          label={t("productForm.shortDescEn")}
           value={shortDescriptionEn}
           onChangeText={setShortDescriptionEn}
-          placeholder="Brief description (max 150 chars)"
+          placeholder={t("productForm.shortDescEnPlaceholder")}
           required
           maxLength={150}
           error={errors.shortDescriptionEn}
         />
 
         <FormField
-          label="Short Description (Arabic)"
+          label={t("productForm.shortDescAr")}
           value={shortDescriptionAr}
           onChangeText={setShortDescriptionAr}
-          placeholder="وصف مختصر"
+          placeholder={t("productForm.shortDescArPlaceholder")}
           required
           error={errors.shortDescriptionAr}
         />
 
         <FormField
-          label="Long Description (English)"
+          label={t("productForm.longDescEn")}
           value={longDescriptionEn}
           onChangeText={setLongDescriptionEn}
-          placeholder="Detailed description (optional)"
+          placeholder={t("productForm.longDescEnPlaceholder")}
           multiline
           numberOfLines={4}
           style={{ minHeight: 80, textAlignVertical: "top", paddingTop: 12 }}
         />
 
         <FormField
-          label="Long Description (Arabic)"
+          label={t("productForm.longDescAr")}
           value={longDescriptionAr}
           onChangeText={setLongDescriptionAr}
-          placeholder="وصف مفصل"
+          placeholder={t("productForm.longDescArPlaceholder")}
           multiline
           numberOfLines={4}
           style={{ minHeight: 80, textAlignVertical: "top", paddingTop: 12 }}
@@ -235,10 +237,10 @@ export default function ProductFormScreen() {
         <View style={{ flexDirection: "row", gap: 12 }}>
           <View style={{ flex: 1 }}>
             <FormField
-              label="Price"
+              label={t("productForm.price")}
               value={price}
               onChangeText={setPrice}
-              placeholder="0.00"
+              placeholder={t("productForm.pricePlaceholder")}
               keyboardType="decimal-pad"
               required
               error={errors.price}
@@ -246,85 +248,85 @@ export default function ProductFormScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <FormField
-              label="Stock"
+              label={t("productForm.stock")}
               value={stock}
               onChangeText={setStock}
-              placeholder="0"
+              placeholder={t("productForm.stockPlaceholder")}
               keyboardType="number-pad"
             />
           </View>
         </View>
 
         <PickerSelect
-          label="Container"
+          label={t("productForm.container")}
           options={containerOptions}
           selected={containerId}
           onSelect={setContainerId}
           required
           error={errors.containerId}
-          placeholder="Select a container"
+          placeholder={t("productForm.containerPlaceholder")}
         />
 
         <View style={gs.dividerFull} />
-        <SectionHeader title="Media" subtitle="Product images" />
+        <SectionHeader title={t("productForm.media")} subtitle={t("productForm.mediaSub")} />
 
         <ImageField
           images={images}
-          label="Images"
+          label={t("productForm.images")}
           onAdd={handleAddImage}
           onRemove={(i) => setImages(images.filter((_, idx) => idx !== i))}
         />
 
         <View style={gs.dividerFull} />
-        <SectionHeader title="Additional Info" subtitle="Tags, aliases, and notes" />
+        <SectionHeader title={t("productForm.additionalInfo")} subtitle={t("productForm.additionalInfoSub")} />
 
         <FormField
-          label="Tags (English)"
+          label={t("productForm.tagsEn")}
           value={tagsEn}
           onChangeText={setTagsEn}
-          placeholder="Comma-separated: tag1, tag2, tag3"
+          placeholder={t("productForm.tagsEnPlaceholder")}
           autoCapitalize="none"
         />
 
         <FormField
-          label="Tags (Arabic)"
+          label={t("productForm.tagsAr")}
           value={tagsAr}
           onChangeText={setTagsAr}
-          placeholder="وسوم مفصولة بفواصل"
+          placeholder={t("productForm.tagsArPlaceholder")}
           autoCapitalize="none"
         />
 
         <FormField
-          label="Aliases (English)"
+          label={t("productForm.aliasesEn")}
           value={aliasesEn}
           onChangeText={setAliasesEn}
-          placeholder="Comma-separated alternate names"
+          placeholder={t("productForm.aliasesEnPlaceholder")}
           autoCapitalize="none"
         />
 
         <FormField
-          label="Aliases (Arabic)"
+          label={t("productForm.aliasesAr")}
           value={aliasesAr}
           onChangeText={setAliasesAr}
-          placeholder="أسماء بديلة"
+          placeholder={t("productForm.aliasesArPlaceholder")}
           autoCapitalize="none"
         />
 
         <FormField
-          label="Notes (English)"
+          label={t("productForm.notesEn")}
           value={notesEn}
           onChangeText={setNotesEn}
-          placeholder="One note per line"
+          placeholder={t("productForm.notesEnPlaceholder")}
           multiline
           numberOfLines={3}
           style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }}
         />
 
         <FormField
-          label="Notes (Arabic)"
+          label={t("productForm.notesAr")}
           value={notesAr}
           onChangeText={setNotesAr}
-          placeholder="ملاحظات"
+          placeholder={t("productForm.notesArPlaceholder")}
           multiline
           numberOfLines={3}
           style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }}
@@ -339,7 +341,7 @@ export default function ProductFormScreen() {
             size={22}
             color={isActive ? plate.green : plate.graySecond}
           />
-          <Text style={[gs.text, { marginLeft: 8 }]}>Active (visible in store)</Text>
+          <Text style={[gs.text, { marginLeft: 8 }]}>{t("productForm.activeLabel")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -348,7 +350,7 @@ export default function ProductFormScreen() {
           disabled={isLoading}
         >
           <Ionicons name="save-outline" size={20} color={plate.background} style={{ marginRight: 8 }} />
-          <Text style={gs.buttonText}>{isLoading ? "Saving..." : "Save Product"}</Text>
+          <Text style={gs.buttonText}>{isLoading ? t("productForm.savingButton") : t("productForm.saveButton")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

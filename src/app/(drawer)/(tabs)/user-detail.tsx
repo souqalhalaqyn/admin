@@ -7,11 +7,13 @@ import { useGlobalStyles } from "@/styles/global";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function UserDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
+  const { t } = useTranslation();
   const [showBalanceForm, setShowBalanceForm] = useState(false);
   const [balanceAmount, setBalanceAmount] = useState("");
 
@@ -25,8 +27,8 @@ export default function UserDetailScreen() {
     method: "put",
     url: `admin/users/${id}/balance`,
     options: {
-      onSuccess: () => { refetch(); setShowBalanceForm(false); setBalanceAmount(""); Alert.alert("Success", "Balance updated"); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onSuccess: () => { refetch(); setShowBalanceForm(false); setBalanceAmount(""); Alert.alert(t("common.success"), t("user.balanceUpdated")); },
+      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
@@ -41,7 +43,7 @@ export default function UserDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
           <Ionicons name="arrow-back" size={24} color={plate.text} />
         </TouchableOpacity>
-        <Text style={[gs.h3, { marginLeft: 12 }]}>User Detail</Text>
+        <Text style={[gs.h3, { marginLeft: 12 }]}>{t("user.detailTitle")}</Text>
       </View>
 
       <ScrollView
@@ -49,12 +51,12 @@ export default function UserDetailScreen() {
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
       >
         <View style={[gs.card, { padding: 16 }]}>
-          <SectionHeader title="Account Info" />
+          <SectionHeader title={t("user.accountInfo")} />
           <View style={{ gap: 8 }}>
-            <Row label="Phone" value={user.phone} />
-            <Row label="Role" value={user.role} color={user.role === "admin" ? plate.primary : plate.text} />
-            <Row label="Balance" value={`$${user.balance?.toLocaleString() ?? 0}`} color={plate.blue} />
-            <Row label="Joined" value={user.createdAt ? new Date(user.createdAt).toLocaleDateString() : ""} />
+            <Row label={t("user.phone")} value={user.phone} />
+            <Row label={t("user.role")} value={user.role} color={user.role === "admin" ? plate.primary : plate.text} />
+            <Row label={t("user.balance")} value={`$${user.balance?.toLocaleString() ?? 0}`} color={plate.blue} />
+            <Row label={t("user.joined")} value={user.createdAt ? new Date(user.createdAt).toLocaleDateString() : ""} />
           </View>
         </View>
 
@@ -64,37 +66,37 @@ export default function UserDetailScreen() {
             onPress={() => setShowBalanceForm(true)}
           >
             <Ionicons name="wallet-outline" size={18} color={plate.primary} style={{ marginRight: 8 }} />
-            <Text style={gs.buttonTextSecondary}>Update Balance</Text>
+            <Text style={gs.buttonTextSecondary}>{t("user.updateBalance")}</Text>
           </TouchableOpacity>
         ) : (
           <View style={[gs.card, { padding: 16 }]}>
-            <SectionHeader title="Adjust Balance" />
+            <SectionHeader title={t("user.adjustBalance")} />
             <FormField
-              label="Amount"
+              label={t("user.amount")}
               value={balanceAmount}
               onChangeText={setBalanceAmount}
-              placeholder="Enter amount (positive to add, negative to deduct)"
-              keyboardType="decimal-pad"
+              placeholder={t("user.amountPlaceholder")}
+              keyboardType="numeric"
             />
             <View style={{ flexDirection: "row", gap: 12 }}>
               <TouchableOpacity
                 style={[gs.buttonOutline, { flex: 1 }]}
                 onPress={() => setShowBalanceForm(false)}
               >
-                <Text style={gs.buttonTextSecondary}>Cancel</Text>
+                <Text style={gs.buttonTextSecondary}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[gs.button, { flex: 1 }]}
                 onPress={() => {
                   const amount = Number(balanceAmount);
                   if (isNaN(amount) || amount === 0) {
-                    Alert.alert("Error", "Enter a valid amount");
+                    Alert.alert(t("common.error"), t("user.validationAmount"));
                     return;
                   }
                   updateBalanceMutation.mutate({ amount });
                 }}
               >
-                <Text style={gs.buttonText}>Apply</Text>
+                <Text style={gs.buttonText}>{t("user.apply")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -102,7 +104,7 @@ export default function UserDetailScreen() {
 
         {user.locations?.length > 0 ? (
           <View style={[gs.card, { padding: 16 }]}>
-            <SectionHeader title={`Saved Locations (${user.locations.length})`} />
+            <SectionHeader title={t("user.savedLocations", { count: user.locations.length })} />
             {user.locations.map((loc: any, i: number) => (
               <View key={i} style={[gs.listItem, { paddingHorizontal: 0 }]}>
                 <View style={{ flex: 1 }}>
@@ -118,11 +120,11 @@ export default function UserDetailScreen() {
 
         {user.orders?.length > 0 ? (
           <View style={[gs.card, { padding: 16 }]}>
-            <SectionHeader title={`Recent Orders (${user.orders.length})`} />
+            <SectionHeader title={t("user.recentOrders", { count: user.orders.length })} />
             {user.orders.map((order: any, i: number) => (
               <View key={i} style={[gs.listItem, { paddingHorizontal: 0 }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={gs.label}>Order #{order._id?.slice(-6)}</Text>
+                  <Text style={gs.label}>{t("user.orderNumber", { id: order._id?.slice(-6) })}</Text>
                   <Text style={gs.caption}>${order.total?.toLocaleString()} - {order.status}</Text>
                 </View>
               </View>

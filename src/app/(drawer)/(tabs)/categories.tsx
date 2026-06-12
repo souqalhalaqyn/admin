@@ -8,9 +8,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 
 export default function CategoriesScreen() {
+  const { t } = useTranslation();
   const { plate, gs } = useGlobalStyles();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -22,8 +24,8 @@ export default function CategoriesScreen() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => getApiClient().delete(`categories/${id}`).then(r => r.data),
-    onSuccess: () => { refetch(); Alert.alert("Deleted"); },
-    onError: (err: any) => Alert.alert("Error", getErrorMessage(err)),
+    onSuccess: () => { refetch(); Alert.alert(t("common.deleted")); },
+    onError: (err: any) => Alert.alert(t("common.error"), getErrorMessage(err)),
     onSettled: () => setDeleteId(null),
   });
 
@@ -39,7 +41,7 @@ export default function CategoriesScreen() {
       </View>
       <View style={{ flex: 1 }}>
         <Text style={gs.label}>{item.name}</Text>
-        <Text style={gs.caption}>{item.containers?.length ?? 0} containers</Text>
+        <Text style={gs.caption}>{t("category.containerCount", { count: item.containers?.length ?? 0 })}</Text>
       </View>
       <TouchableOpacity onPress={() => setDeleteId(item._id)} style={{ padding: 8 }}>
         <Ionicons name="trash-outline" size={18} color={plate.red} />
@@ -52,7 +54,7 @@ export default function CategoriesScreen() {
   return (
     <View style={gs.safeArea}>
       <View style={[gs.containerRow, { padding: 16, backgroundColor: plate.backgroundSecond, borderBottomWidth: 1, borderBottomColor: plate.gray }]}>
-        <Text style={[gs.h3, { flex: 1 }]}>Categories</Text>
+        <Text style={[gs.h3, { flex: 1 }]}>{t("category.listTitle")}</Text>
         <TouchableOpacity onPress={() => refetch()} style={{ marginRight: 12 }}>
           <Ionicons name="refresh" size={22} color={plate.primary} />
         </TouchableOpacity>
@@ -61,7 +63,7 @@ export default function CategoriesScreen() {
           style={[gs.buttonSmall, { backgroundColor: plate.primary, paddingHorizontal: 16 }]}
         >
           <Ionicons name="add" size={18} color={plate.background} />
-          <Text style={[gs.buttonText, { fontSize: 14, marginLeft: 4 }]}>Add</Text>
+          <Text style={[gs.buttonText, { fontSize: 14, marginLeft: 4 }]}>{t("category.addButton")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -71,14 +73,14 @@ export default function CategoriesScreen() {
         renderItem={renderCategory}
         contentContainerStyle={[gs.container]}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
-        ListEmptyComponent={<EmptyState icon="folder-outline" title="No categories" />}
+        ListEmptyComponent={<EmptyState icon="folder-outline" title={t("category.emptyTitle")} />}
       />
 
       <ConfirmDialog
         visible={!!deleteId}
-        title="Delete Category"
-        message="Are you sure?"
-        confirmLabel="Delete"
+        title={t("category.deleteConfirmTitle")}
+        message={t("category.deleteConfirmMessage")}
+        confirmLabel={t("category.deleteConfirmButton")}
         confirmDanger
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         onCancel={() => setDeleteId(null)}

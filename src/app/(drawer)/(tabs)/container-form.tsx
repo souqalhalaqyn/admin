@@ -8,9 +8,11 @@ import { useGlobalStyles } from "@/styles/global";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function ContainerFormScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
   const isEditing = !!id;
@@ -60,16 +62,16 @@ export default function ContainerFormScreen() {
   const createMutation = useApiMutation<any, any>({
     method: "post", url: "containers",
     options: {
-      onSuccess: () => { Alert.alert("Success", "Container created"); router.back(); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onSuccess: () => { Alert.alert(t("common.success"), t("containerForm.created")); router.back(); },
+      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
   const updateMutation = useApiMutation<any, any>({
     method: "put", url: `containers/${id}`,
     options: {
-      onSuccess: () => { Alert.alert("Success", "Container updated"); router.back(); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onSuccess: () => { Alert.alert(t("common.success"), t("containerForm.updated")); router.back(); },
+      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
@@ -81,9 +83,9 @@ export default function ContainerFormScreen() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!nameEn.trim()) e.nameEn = "Name (English) is required";
-    if (!nameAr.trim()) e.nameAr = "Name (Arabic) is required";
-    if (!brandId) e.brandId = "Brand is required";
+    if (!nameEn.trim()) e.nameEn = t("containerForm.validationNameEnRequired");
+    if (!nameAr.trim()) e.nameAr = t("containerForm.validationNameArRequired");
+    if (!brandId) e.brandId = t("containerForm.validationBrandRequired");
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -116,31 +118,31 @@ export default function ContainerFormScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
           <Ionicons name="arrow-back" size={24} color={plate.text} />
         </TouchableOpacity>
-        <Text style={[gs.h3, { marginLeft: 12, flex: 1 }]}>{isEditing ? "Edit Container" : "New Container"}</Text>
+        <Text style={[gs.h3, { marginLeft: 12, flex: 1 }]}>{isEditing ? t("containerForm.editTitle") : t("containerForm.newTitle")}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: 20, backgroundColor: plate.background }} keyboardShouldPersistTaps="handled">
-        <SectionHeader title="Container Info" />
+        <SectionHeader title={t("containerForm.containerInfo")} />
 
-        <FormField label="Name (English)" value={nameEn} onChangeText={setNameEn} placeholder="Container name" required error={errors.nameEn} />
-        <FormField label="Name (Arabic)" value={nameAr} onChangeText={setNameAr} placeholder="اسم الحاوية" required error={errors.nameAr} />
-        <FormField label="Short Description (English)" value={shortDescriptionEn} onChangeText={setShortDescriptionEn} placeholder="Brief description" />
-        <FormField label="Short Description (Arabic)" value={shortDescriptionAr} onChangeText={setShortDescriptionAr} placeholder="وصف مختصر" />
+        <FormField label={t("containerForm.nameEn")} value={nameEn} onChangeText={setNameEn} placeholder={t("containerForm.nameEnPlaceholder")} required error={errors.nameEn} />
+        <FormField label={t("containerForm.nameAr")} value={nameAr} onChangeText={setNameAr} placeholder={t("containerForm.nameArPlaceholder")} required error={errors.nameAr} />
+        <FormField label={t("containerForm.shortDescEn")} value={shortDescriptionEn} onChangeText={setShortDescriptionEn} placeholder={t("containerForm.shortDescEnPlaceholder")} />
+        <FormField label={t("containerForm.shortDescAr")} value={shortDescriptionAr} onChangeText={setShortDescriptionAr} placeholder={t("containerForm.shortDescArPlaceholder")} />
         <FormField
-          label="Long Description (English)" value={longDescriptionEn} onChangeText={setLongDescriptionEn}
-          placeholder="Detailed description" multiline numberOfLines={3}
+          label={t("containerForm.longDescEn")} value={longDescriptionEn} onChangeText={setLongDescriptionEn}
+          placeholder={t("containerForm.longDescEnPlaceholder")} multiline numberOfLines={3}
           style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }}
         />
         <FormField
-          label="Long Description (Arabic)" value={longDescriptionAr} onChangeText={setLongDescriptionAr}
-          placeholder="وصف مفصل" multiline numberOfLines={3}
+          label={t("containerForm.longDescAr")} value={longDescriptionAr} onChangeText={setLongDescriptionAr}
+          placeholder={t("containerForm.longDescArPlaceholder")} multiline numberOfLines={3}
           style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }}
         />
 
-        <PickerSelect label="Brand" options={brandOptions} selected={brandId} onSelect={setBrandId} required error={errors.brandId} placeholder="Select brand" />
+        <PickerSelect label={t("containerForm.brand")} options={brandOptions} selected={brandId} onSelect={setBrandId} required error={errors.brandId} placeholder={t("containerForm.brandPlaceholder")} />
 
         <View style={{ marginBottom: 16 }}>
-          <Text style={[gs.label, { marginBottom: 6 }]}>Categories</Text>
+          <Text style={[gs.label, { marginBottom: 6 }]}>{t("containerForm.categories")}</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {categoryOptions.map((opt: { label: string; value: string }) => (
               <TouchableOpacity
@@ -158,12 +160,12 @@ export default function ContainerFormScreen() {
 
         <TouchableOpacity style={[gs.containerRow, { marginBottom: 24 }]} onPress={() => setIsActive(!isActive)}>
           <Ionicons name={isActive ? "checkbox" : "square-outline"} size={22} color={isActive ? plate.green : plate.graySecond} />
-          <Text style={[gs.text, { marginLeft: 8 }]}>Active</Text>
+          <Text style={[gs.text, { marginLeft: 8 }]}>{t("containerForm.activeLabel")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={[gs.button, { opacity: isLoading ? 0.6 : 1 }]} onPress={handleSubmit} disabled={isLoading}>
           <Ionicons name="save-outline" size={20} color={plate.background} style={{ marginRight: 8 }} />
-          <Text style={gs.buttonText}>{isLoading ? "Saving..." : "Save Container"}</Text>
+          <Text style={gs.buttonText}>{isLoading ? t("containerForm.savingButton") : t("containerForm.saveButton")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

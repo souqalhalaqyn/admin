@@ -1,9 +1,10 @@
 import { useApiQuery } from "@/api";
 import { useAuth } from "@/context/AuthContext";
 import { useGlobalStyles } from "@/styles/global";
+import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 interface DashboardStat {
   label: string;
@@ -16,6 +17,7 @@ interface DashboardStat {
 export default function DashboardScreen() {
   const { plate, gs } = useGlobalStyles();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
 
   const { data: ordersData, refetch: refetchOrders } = useApiQuery<any>({
     url: "admin/orders",
@@ -33,17 +35,17 @@ export default function DashboardScreen() {
   const userCount = (usersData as any)?.meta?.total ?? 0;
 
   const stats: DashboardStat[] = [
-    { label: "Total Orders", value: String(orderCount), icon: "receipt", color: plate.blue, route: "orders" },
-    { label: "Total Users", value: String(userCount), icon: "people", color: plate.green, route: "users" },
+    { label: t("dashboard.statTotalOrders"), value: String(orderCount), icon: "receipt", color: plate.blue, route: "orders" },
+    { label: t("dashboard.statTotalUsers"), value: String(userCount), icon: "people", color: plate.green, route: "users" },
   ];
 
   const quickActions = [
-    { label: "Orders", icon: "receipt-outline" as const, route: "orders" },
-    { label: "Products", icon: "cube-outline" as const, route: "products" },
-    { label: "Containers", icon: "layers-outline" as const, route: "containers" },
-    { label: "Brands", icon: "pricetags-outline" as const, route: "brands" },
-    { label: "Categories", icon: "folder-outline" as const, route: "categories" },
-    { label: "Users", icon: "people-outline" as const, route: "users" },
+    { label: t("navigation.orders"), icon: "receipt-outline" as const, route: "orders" },
+    { label: t("navigation.products"), icon: "cube-outline" as const, route: "products" },
+    { label: t("navigation.containers"), icon: "layers-outline" as const, route: "containers" },
+    { label: t("navigation.brands"), icon: "pricetags-outline" as const, route: "brands" },
+    { label: t("navigation.categories"), icon: "folder-outline" as const, route: "categories" },
+    { label: t("navigation.users"), icon: "people-outline" as const, route: "users" },
   ];
 
   return (
@@ -53,9 +55,15 @@ export default function DashboardScreen() {
       refreshControl={<RefreshControl refreshing={false} onRefresh={refetchOrders} />}
     >
       <View style={[gs.rowBetween, { marginTop: 16, marginBottom: 24 }]}>
-        <View>
-          <Text style={gs.h2}>Dashboard</Text>
-          <Text style={[gs.textSmall, { marginTop: 4 }]}>Welcome, {user?.phone}</Text>
+        <View style={gs.containerRow}>
+          <Image
+            source={require("@/assets/logo.png")}
+            style={{ width: 36, height: 36, resizeMode: "contain", marginRight: 10 }}
+          />
+          <View>
+            <Text style={gs.h2}>{t("navigation.dashboard")}</Text>
+            <Text style={[gs.textSmall, { marginTop: 4 }]}>{t("dashboard.welcome", { phone: user?.phone })}</Text>
+          </View>
         </View>
         <TouchableOpacity
           onPress={logout}
@@ -81,7 +89,7 @@ export default function DashboardScreen() {
         ))}
       </View>
 
-      <Text style={[gs.sectionHeader, { marginBottom: 12 }]}>Quick Actions</Text>
+      <Text style={[gs.sectionHeader, { marginBottom: 12 }]}>{t("dashboard.quickActions")}</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
         {quickActions.map((action) => (
           <TouchableOpacity

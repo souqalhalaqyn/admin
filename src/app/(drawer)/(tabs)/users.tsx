@@ -4,10 +4,12 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { useGlobalStyles } from "@/styles/global";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 
 export default function UsersScreen() {
   const { plate, gs } = useGlobalStyles();
+  const { t } = useTranslation();
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } = useInfiniteApiQuery<any>({
     url: "admin/users",
@@ -27,10 +29,10 @@ export default function UsersScreen() {
       <View style={{ flex: 1 }}>
         <Text style={gs.label}>{item.phone}</Text>
         <View style={[gs.containerRow, { gap: 8 }]}>
-          <Text style={gs.caption}>Balance: ${item.balance?.toLocaleString() ?? 0}</Text>
+          <Text style={gs.caption}>{t("user.balanceLabel", { balance: "$" + (item.balance?.toLocaleString() ?? "0") })}</Text>
           {item.role === "admin" ? (
             <View style={[gs.badge, { backgroundColor: plate.primary + "20" }]}>
-              <Text style={[gs.badgeText, { color: plate.primary, fontSize: 10 }]}>ADMIN</Text>
+              <Text style={[gs.badgeText, { color: plate.primary, fontSize: 10 }]}>{t("user.adminBadge")}</Text>
             </View>
           ) : null}
         </View>
@@ -44,7 +46,7 @@ export default function UsersScreen() {
   return (
     <View style={gs.safeArea}>
       <View style={[gs.containerRow, { padding: 16, backgroundColor: plate.backgroundSecond, borderBottomWidth: 1, borderBottomColor: plate.gray }]}>
-        <Text style={[gs.h3, { flex: 1 }]}>Users</Text>
+        <Text style={[gs.h3, { flex: 1 }]}>{t("user.listTitle")}</Text>
         <TouchableOpacity onPress={() => refetch()}>
           <Ionicons name="refresh" size={22} color={plate.primary} />
         </TouchableOpacity>
@@ -58,7 +60,7 @@ export default function UsersScreen() {
         onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
         onEndReachedThreshold={0.5}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
-        ListEmptyComponent={<EmptyState icon="people-outline" title="No users found" />}
+        ListEmptyComponent={<EmptyState icon="people-outline" title={t("user.emptyTitle")} />}
         ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={{ padding: 20 }} /> : null}
       />
     </View>

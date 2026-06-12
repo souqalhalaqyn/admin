@@ -8,9 +8,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 
 export default function BrandsScreen() {
+  const { t } = useTranslation();
   const { plate, gs } = useGlobalStyles();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -22,8 +24,8 @@ export default function BrandsScreen() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => getApiClient().delete(`brands/${id}`).then(r => r.data),
-    onSuccess: () => { refetch(); Alert.alert("Deleted"); },
-    onError: (err: any) => Alert.alert("Error", getErrorMessage(err)),
+    onSuccess: () => { refetch(); Alert.alert(t("common.deleted")); },
+    onError: (err: any) => Alert.alert(t("common.error"), getErrorMessage(err)),
     onSettled: () => setDeleteId(null),
   });
 
@@ -44,7 +46,7 @@ export default function BrandsScreen() {
       <View style={[gs.containerRow, { gap: 4 }]}>
         {!item.isActive ? (
           <View style={[gs.badge, { backgroundColor: plate.red + "20" }]}>
-            <Text style={[gs.badgeText, { color: plate.red, fontSize: 10 }]}>INACTIVE</Text>
+            <Text style={[gs.badgeText, { color: plate.red, fontSize: 10 }]}>{t("brand.inactiveBadge")}</Text>
           </View>
         ) : null}
         <TouchableOpacity onPress={() => setDeleteId(item._id)} style={{ padding: 8 }}>
@@ -59,7 +61,7 @@ export default function BrandsScreen() {
   return (
     <View style={gs.safeArea}>
       <View style={[gs.containerRow, { padding: 16, backgroundColor: plate.backgroundSecond, borderBottomWidth: 1, borderBottomColor: plate.gray }]}>
-        <Text style={[gs.h3, { flex: 1 }]}>Brands</Text>
+        <Text style={[gs.h3, { flex: 1 }]}>{t("brand.listTitle")}</Text>
         <TouchableOpacity onPress={() => refetch()} style={{ marginRight: 12 }}>
           <Ionicons name="refresh" size={22} color={plate.primary} />
         </TouchableOpacity>
@@ -68,7 +70,7 @@ export default function BrandsScreen() {
           style={[gs.buttonSmall, { backgroundColor: plate.primary, paddingHorizontal: 16 }]}
         >
           <Ionicons name="add" size={18} color={plate.background} />
-          <Text style={[gs.buttonText, { fontSize: 14, marginLeft: 4 }]}>Add</Text>
+          <Text style={[gs.buttonText, { fontSize: 14, marginLeft: 4 }]}>{t("brand.addButton")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -78,14 +80,14 @@ export default function BrandsScreen() {
         renderItem={renderBrand}
         contentContainerStyle={[gs.container]}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
-        ListEmptyComponent={<EmptyState icon="pricetags-outline" title="No brands found" />}
+        ListEmptyComponent={<EmptyState icon="pricetags-outline" title={t("brand.emptyTitle")} />}
       />
 
       <ConfirmDialog
         visible={!!deleteId}
-        title="Delete Brand"
-        message="Are you sure?"
-        confirmLabel="Delete"
+        title={t("brand.deleteConfirmTitle")}
+        message={t("brand.deleteConfirmMessage")}
+        confirmLabel={t("brand.deleteConfirmButton")}
         confirmDanger
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         onCancel={() => setDeleteId(null)}

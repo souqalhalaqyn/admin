@@ -8,9 +8,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 
 export default function ContainersScreen() {
+  const { t } = useTranslation();
   const { plate, gs } = useGlobalStyles();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -22,8 +24,8 @@ export default function ContainersScreen() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => getApiClient().delete(`containers/${id}`).then(r => r.data),
-    onSuccess: () => { refetch(); Alert.alert("Deleted"); },
-    onError: (err: any) => Alert.alert("Error", getErrorMessage(err)),
+    onSuccess: () => { refetch(); Alert.alert(t("common.deleted")); },
+    onError: (err: any) => Alert.alert(t("common.error"), getErrorMessage(err)),
     onSettled: () => setDeleteId(null),
   });
 
@@ -40,13 +42,13 @@ export default function ContainersScreen() {
       <View style={{ flex: 1 }}>
         <Text style={gs.label}>{item.name}</Text>
         <Text style={gs.caption}>
-          {item.brand?.name ?? "No brand"} | {item.products?.length ?? 0} products
+          {item.brand?.name ?? t("container.noBrand")} | {t("container.productsCount", { count: item.products?.length ?? 0 })}
         </Text>
       </View>
       <View style={[gs.containerRow, { gap: 4 }]}>
         {!item.isActive ? (
           <View style={[gs.badge, { backgroundColor: plate.red + "20" }]}>
-            <Text style={[gs.badgeText, { color: plate.red, fontSize: 10 }]}>INACTIVE</Text>
+            <Text style={[gs.badgeText, { color: plate.red, fontSize: 10 }]}>{t("container.inactiveBadge")}</Text>
           </View>
         ) : null}
         <TouchableOpacity onPress={() => setDeleteId(item._id)} style={{ padding: 8 }}>
@@ -61,7 +63,7 @@ export default function ContainersScreen() {
   return (
     <View style={gs.safeArea}>
       <View style={[gs.containerRow, { padding: 16, backgroundColor: plate.backgroundSecond, borderBottomWidth: 1, borderBottomColor: plate.gray }]}>
-        <Text style={[gs.h3, { flex: 1 }]}>Containers</Text>
+        <Text style={[gs.h3, { flex: 1 }]}>{t("container.listTitle")}</Text>
         <TouchableOpacity onPress={() => refetch()} style={{ marginRight: 12 }}>
           <Ionicons name="refresh" size={22} color={plate.primary} />
         </TouchableOpacity>
@@ -70,7 +72,7 @@ export default function ContainersScreen() {
           style={[gs.buttonSmall, { backgroundColor: plate.primary, paddingHorizontal: 16 }]}
         >
           <Ionicons name="add" size={18} color={plate.background} />
-          <Text style={[gs.buttonText, { fontSize: 14, marginLeft: 4 }]}>Add</Text>
+          <Text style={[gs.buttonText, { fontSize: 14, marginLeft: 4 }]}>{t("container.addButton")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -80,14 +82,14 @@ export default function ContainersScreen() {
         renderItem={renderContainer}
         contentContainerStyle={[gs.container]}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
-        ListEmptyComponent={<EmptyState icon="layers-outline" title="No containers" />}
+        ListEmptyComponent={<EmptyState icon="layers-outline" title={t("container.emptyTitle")} />}
       />
 
       <ConfirmDialog
         visible={!!deleteId}
-        title="Delete Container"
-        message="Are you sure? This will also delete all products inside."
-        confirmLabel="Delete"
+        title={t("container.deleteConfirmTitle")}
+        message={t("container.deleteConfirmMessage")}
+        confirmLabel={t("container.deleteConfirmButton")}
         confirmDanger
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         onCancel={() => setDeleteId(null)}

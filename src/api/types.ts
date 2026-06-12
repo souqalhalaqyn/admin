@@ -29,4 +29,6 @@ export interface ApiConfig {
   timeout?: number;
   token?: string;
   onUnauthorized?: () => void;
+  getRefreshToken?: () => string | null;
+  onRefresh?: (accessToken: string, refreshToken: string) => void;
 }

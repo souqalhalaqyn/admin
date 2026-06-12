@@ -7,9 +7,11 @@ import { useGlobalStyles } from "@/styles/global";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function BrandFormScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
   const isEditing = !!id;
@@ -44,8 +46,8 @@ export default function BrandFormScreen() {
     method: "post",
     url: "brands",
     options: {
-      onSuccess: () => { Alert.alert("Success", "Brand created"); router.back(); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onSuccess: () => { Alert.alert(t("common.success"), t("brandForm.created")); router.back(); },
+      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
@@ -53,16 +55,16 @@ export default function BrandFormScreen() {
     method: "put",
     url: `brands/${id}`,
     options: {
-      onSuccess: () => { Alert.alert("Success", "Brand updated"); router.back(); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onSuccess: () => { Alert.alert(t("common.success"), t("brandForm.updated")); router.back(); },
+      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!nameEn.trim()) e.nameEn = "Name (English) is required";
-    else if (nameEn.trim().length < 2) e.nameEn = "Name must be at least 2 characters";
-    if (!nameAr.trim()) e.nameAr = "Name (Arabic) is required";
+    if (!nameEn.trim()) e.nameEn = t("brandForm.validationNameEnRequired");
+    else if (nameEn.trim().length < 2) e.nameEn = t("brandForm.validationNameEnMinLength");
+    if (!nameAr.trim()) e.nameAr = t("brandForm.validationNameArRequired");
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -94,55 +96,55 @@ export default function BrandFormScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
           <Ionicons name="arrow-back" size={24} color={plate.text} />
         </TouchableOpacity>
-        <Text style={[gs.h3, { marginLeft: 12 }]}>{isEditing ? "Edit Brand" : "New Brand"}</Text>
+        <Text style={[gs.h3, { marginLeft: 12 }]}>{isEditing ? t("brandForm.editTitle") : t("brandForm.newTitle")}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: 20, backgroundColor: plate.background }} keyboardShouldPersistTaps="handled">
-        <SectionHeader title="Brand Information" />
+        <SectionHeader title={t("brandForm.brandInfo")} />
 
         <FormField
-          label="Name (English)"
+          label={t("brandForm.nameEn")}
           value={nameEn}
           onChangeText={setNameEn}
-          placeholder="Brand name"
+          placeholder={t("brandForm.nameEnPlaceholder")}
           required
           error={errors.nameEn}
         />
 
         <FormField
-          label="Name (Arabic)"
+          label={t("brandForm.nameAr")}
           value={nameAr}
           onChangeText={setNameAr}
-          placeholder="اسم العلامة التجارية"
+          placeholder={t("brandForm.nameArPlaceholder")}
           required
           error={errors.nameAr}
         />
 
         <FormField
-          label="Description (English)"
+          label={t("brandForm.descEn")}
           value={descriptionEn}
           onChangeText={setDescriptionEn}
-          placeholder="Brand description (optional)"
+          placeholder={t("brandForm.descEnPlaceholder")}
           multiline
           numberOfLines={3}
           style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }}
         />
 
         <FormField
-          label="Description (Arabic)"
+          label={t("brandForm.descAr")}
           value={descriptionAr}
           onChangeText={setDescriptionAr}
-          placeholder="وصف العلامة التجارية"
+          placeholder={t("brandForm.descArPlaceholder")}
           multiline
           numberOfLines={3}
           style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }}
         />
 
         <FormField
-          label="Logo URL"
+          label={t("brandForm.logoUrl")}
           value={logo}
           onChangeText={setLogo}
-          placeholder="Logo URL (optional)"
+          placeholder={t("brandForm.logoUrlPlaceholder")}
           autoCapitalize="none"
         />
 
@@ -155,7 +157,7 @@ export default function BrandFormScreen() {
             size={22}
             color={isActive ? plate.green : plate.graySecond}
           />
-          <Text style={[gs.text, { marginLeft: 8 }]}>Active</Text>
+          <Text style={[gs.text, { marginLeft: 8 }]}>{t("brandForm.activeLabel")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -164,7 +166,7 @@ export default function BrandFormScreen() {
           disabled={isLoading}
         >
           <Ionicons name="save-outline" size={20} color={plate.background} style={{ marginRight: 8 }} />
-          <Text style={gs.buttonText}>{isLoading ? "Saving..." : "Save Brand"}</Text>
+          <Text style={gs.buttonText}>{isLoading ? t("brandForm.savingButton") : t("brandForm.saveButton")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

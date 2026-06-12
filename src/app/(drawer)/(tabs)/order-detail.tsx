@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { useState } from "react";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#FBBF24",
@@ -17,15 +18,6 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "#EF4444",
 };
 
-const ORDER_LABELS: Record<string, string> = {
-  pending: "Pending",
-  confirmed: "Confirmed",
-  processing: "Processing",
-  shipped: "Shipped",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-};
-
 const STATUS_TRANSITIONS: Record<string, string[]> = {
   pending: ["confirmed", "cancelled"],
   confirmed: ["processing", "cancelled"],
@@ -33,9 +25,12 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
   shipped: ["delivered"],
 };
 
+const statusLabelKey = (status: string) => `order.status${status.charAt(0).toUpperCase()}${status.slice(1)}`;
+
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
+  const { t } = useTranslation();
   const [confirmStatus, setConfirmStatus] = useState<string | null>(null);
 
   const { data, refetch, isLoading } = useApiQuery<any>({
@@ -48,8 +43,8 @@ export default function OrderDetailScreen() {
     method: "put",
     url: `admin/orders/${id}/status`,
     options: {
-      onSuccess: () => { refetch(); setConfirmStatus(null); Alert.alert("Success", "Order status updated"); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onSuccess: () => { refetch(); setConfirmStatus(null); Alert.alert(t("common.success"), t("order.statusUpdated")); },
+      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
@@ -65,29 +60,29 @@ export default function OrderDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
           <Ionicons name="arrow-back" size={24} color={plate.text} />
         </TouchableOpacity>
-        <Text style={[gs.h3, { marginLeft: 12 }]}>Order Detail</Text>
+        <Text style={[gs.h3, { marginLeft: 12 }]}>{t("order.detailTitle")}</Text>
       </View>
 
       <ScrollView contentContainerStyle={[gs.container, gs.scrollContent]}>
         <View style={[gs.card, { padding: 16 }]}>
-          <Text style={[gs.sectionHeader]}>Order Info</Text>
+          <Text style={[gs.sectionHeader]}>{t("order.orderInfo")}</Text>
           <View style={{ gap: 8 }}>
-            <Row label="Order ID" value={order._id} />
-            <Row label="Status" value={ORDER_LABELS[order.status] ?? order.status} color={getStatusColor(order.status)} />
-            <Row label="Total" value={`$${order.total?.toLocaleString() ?? 0}`} color={plate.primary} />
-            <Row label="Customer" value={order.user?.phone ?? "N/A"} />
-            <Row label="Location" value={order.location || "N/A"} />
-            <Row label="Date" value={order.createdAt ? new Date(order.createdAt).toLocaleString() : "N/A"} />
+            <Row label={t("order.orderId")} value={order._id} />
+            <Row label={t("order.status")} value={t(statusLabelKey(order.status))} color={getStatusColor(order.status)} />
+            <Row label={t("order.total")} value={`$${order.total?.toLocaleString() ?? 0}`} color={plate.primary} />
+            <Row label={t("order.customer")} value={order.user?.phone ?? t("order.na")} />
+            <Row label={t("order.location")} value={order.location || t("order.na")} />
+            <Row label={t("order.date")} value={order.createdAt ? new Date(order.createdAt).toLocaleString() : t("order.na")} />
           </View>
         </View>
 
         <View style={[gs.card, { padding: 16 }]}>
-          <Text style={[gs.sectionHeader]}>Items ({order.items?.length ?? 0})</Text>
+          <Text style={[gs.sectionHeader]}>{t("order.items", { count: order.items?.length ?? 0 })}</Text>
           {order.items?.map((item: any, i: number) => (
             <View key={i} style={[gs.listItem, { paddingHorizontal: 0 }]}>
               <View style={{ flex: 1 }}>
                 <Text style={gs.label}>{item.name}</Text>
-                <Text style={gs.caption}>Qty: {item.quantity} x ${item.price}</Text>
+                <Text style={gs.caption}>{t("order.qty", { qty: item.quantity, price: "$" + item.price })}</Text>
               </View>
               <Text style={[gs.textBold, { color: plate.primary }]}>
                 ${(item.quantity * item.price).toLocaleString()}
@@ -98,7 +93,7 @@ export default function OrderDetailScreen() {
 
         {STATUS_TRANSITIONS[order.status] ? (
           <View style={[gs.card, { padding: 16 }]}>
-            <Text style={[gs.sectionHeader]}>Update Status</Text>
+            <Text style={[gs.sectionHeader]}>{t("order.updateStatus")}</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {STATUS_TRANSITIONS[order.status].map((status) => (
                 <TouchableOpacity
@@ -110,7 +105,7 @@ export default function OrderDetailScreen() {
                   onPress={() => setConfirmStatus(status)}
                 >
                   <Text style={{ color: getStatusColor(status), fontWeight: "600", fontSize: 14 }}>
-                    {ORDER_LABELS[status]}
+                    {t(statusLabelKey(status))}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -120,14 +115,14 @@ export default function OrderDetailScreen() {
 
         {order.statusHistory?.length > 0 ? (
           <View style={[gs.card, { padding: 16 }]}>
-            <Text style={[gs.sectionHeader]}>Status History</Text>
+            <Text style={[gs.sectionHeader]}>{t("order.statusHistory")}</Text>
             {order.statusHistory.map((entry: any, i: number) => (
               <View key={i} style={[gs.listItem, { paddingHorizontal: 0 }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={gs.label}>{ORDER_LABELS[entry.status] ?? entry.status}</Text>
+                  <Text style={gs.label}>{t(statusLabelKey(entry.status))}</Text>
                   <Text style={gs.caption}>
                     {entry.changedAt ? new Date(entry.changedAt).toLocaleString() : ""}
-                    {entry.changedBy ? ` by ${entry.changedBy}` : ""}
+                    {entry.changedBy ? t("order.changedBy", { changedBy: entry.changedBy }) : ""}
                   </Text>
                 </View>
               </View>
@@ -138,9 +133,9 @@ export default function OrderDetailScreen() {
 
       <ConfirmDialog
         visible={!!confirmStatus}
-        title="Update Status"
-        message={`Change order to "${confirmStatus ? ORDER_LABELS[confirmStatus] : ""}"?`}
-        confirmLabel="Update"
+        title={t("order.confirmUpdateTitle")}
+        message={t("order.confirmChangeMessage", { status: confirmStatus ? t(statusLabelKey(confirmStatus)) : "" })}
+        confirmLabel={t("order.confirmUpdateButton")}
         onConfirm={() => confirmStatus && updateStatusMutation.mutate({ status: confirmStatus })}
         onCancel={() => setConfirmStatus(null)}
       />

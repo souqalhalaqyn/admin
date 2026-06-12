@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#FBBF24",
@@ -18,17 +19,13 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "#EF4444",
 };
 
-const ORDER_LABELS: Record<string, string> = {
-  pending: "Pending",
-  confirmed: "Confirmed",
-  processing: "Processing",
-  shipped: "Shipped",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-};
+const STATUS_KEYS = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"];
+
+const statusLabelKey = (status: string) => `order.status${status.charAt(0).toUpperCase()}${status.slice(1)}`;
 
 export default function OrdersScreen() {
   const { plate, gs } = useGlobalStyles();
+  const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [confirmItem, setConfirmItem] = useState<{ id: string; status: string } | null>(null);
 
@@ -43,7 +40,7 @@ export default function OrdersScreen() {
     url: "",
     options: {
       onSuccess: () => { refetch(); setConfirmItem(null); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
@@ -54,7 +51,7 @@ export default function OrdersScreen() {
   const orders = data?.pages.flatMap((p) => p.data) ?? [];
 
   const getStatusColor = (status: string) => STATUS_COLORS[status] ?? plate.graySecond;
-  const getStatusLabel = (status: string) => ORDER_LABELS[status] ?? status;
+  const getStatusLabel = (status: string) => t(statusLabelKey(status));
 
   const renderOrder = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -62,7 +59,7 @@ export default function OrdersScreen() {
       onPress={() => router.push({ pathname: "/(drawer)/(tabs)/order-detail" as any, params: { id: item._id } })}
     >
       <View style={[gs.rowBetween, { marginBottom: 8 }]}>
-        <Text style={[gs.label, { flex: 1 }]}>{item.user?.phone ?? "Unknown"}</Text>
+        <Text style={[gs.label, { flex: 1 }]}>{item.user?.phone ?? t("order.unknownUser")}</Text>
         <View style={[gs.badge, { backgroundColor: getStatusColor(item.status) + "20" }]}>
           <Text style={[gs.badgeText, { color: getStatusColor(item.status), fontSize: 11 }]}>
             {getStatusLabel(item.status)}
@@ -71,7 +68,7 @@ export default function OrdersScreen() {
       </View>
       <View style={[gs.rowBetween]}>
         <Text style={[gs.textSmall]}>
-          {item.items?.length ?? 0} items
+          {t("order.itemsCount", { count: item.items?.length ?? 0 })}
         </Text>
         <Text style={[gs.textBold, { color: plate.primary }]}>
           ${item.total?.toLocaleString() ?? 0}
@@ -91,7 +88,7 @@ export default function OrdersScreen() {
     <View style={gs.safeArea}>
       <View style={[gs.container, { paddingBottom: 0 }]}>
         <View style={[gs.rowBetween, { marginTop: 16, marginBottom: 12 }]}>
-          <Text style={gs.h2}>Orders</Text>
+          <Text style={gs.h2}>{t("order.listTitle")}</Text>
           <TouchableOpacity onPress={() => refetch()}>
             <Ionicons name="refresh" size={22} color={plate.primary} />
           </TouchableOpacity>
@@ -99,7 +96,7 @@ export default function OrdersScreen() {
 
         <FlatList
           horizontal
-          data={[{ key: null, label: "All" }, ...Object.entries(ORDER_LABELS).map(([key, label]) => ({ key, label }))]}
+          data={[{ key: null, label: t("order.filterAll") }, ...STATUS_KEYS.map((key) => ({ key, label: t(statusLabelKey(key)) }))]}
           keyExtractor={(item) => item.key ?? "all"}
           showsHorizontalScrollIndicator={false}
           style={{ marginBottom: 12 }}
@@ -128,15 +125,15 @@ export default function OrdersScreen() {
         onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
         onEndReachedThreshold={0.5}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
-        ListEmptyComponent={<EmptyState icon="receipt-outline" title="No orders found" />}
+        ListEmptyComponent={<EmptyState icon="receipt-outline" title={t("order.emptyList")} />}
         ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={{ padding: 20 }} /> : null}
       />
 
       <ConfirmDialog
         visible={!!confirmItem}
-        title="Update Order Status"
-        message={`Change order status?`}
-        confirmLabel="Update"
+        title={t("order.confirmUpdateTitle")}
+        message={t("order.confirmUpdateMessage")}
+        confirmLabel={t("order.confirmUpdateButton")}
         onConfirm={() => confirmItem && handleUpdateStatus(confirmItem.id, confirmItem.status)}
         onCancel={() => setConfirmItem(null)}
       />

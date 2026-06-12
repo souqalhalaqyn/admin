@@ -48,6 +48,22 @@ export const queryKeys = {
     detail: (id: string | number) => ["api", "users", "detail", id] as const,
   },
 
+  chargeRequests: {
+    all: ["api", "charge-requests"] as const,
+    list: () => ["api", "charge-requests", "list"] as const,
+    detail: (id: string) => ["api", "charge-requests", "detail", id] as const,
+  },
+
+  offers: {
+    all: ["api", "offers"] as const,
+    list: () => ["api", "offers", "list"] as const,
+    detail: (id: string) => ["api", "offers", "detail", id] as const,
+    admin: {
+      list: () => ["api", "offers", "admin", "list"] as const,
+      detail: (id: string) => ["api", "offers", "admin", "detail", id] as const,
+    },
+  },
+
   admin: {
     all: ["api", "admin"] as const,
     settings: () => ["api", "admin", "settings"] as const,

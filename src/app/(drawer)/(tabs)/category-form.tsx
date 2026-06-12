@@ -7,9 +7,11 @@ import { useGlobalStyles } from "@/styles/global";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function CategoryFormScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
   const isEditing = !!id;
@@ -38,24 +40,24 @@ export default function CategoryFormScreen() {
   const createMutation = useApiMutation<any, any>({
     method: "post", url: "categories",
     options: {
-      onSuccess: () => { Alert.alert("Success", "Category created"); router.back(); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onSuccess: () => { Alert.alert(t("common.success"), t("categoryForm.created")); router.back(); },
+      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
   const updateMutation = useApiMutation<any, any>({
     method: "put", url: `categories/${id}`,
     options: {
-      onSuccess: () => { Alert.alert("Success", "Category updated"); router.back(); },
-      onError: (err) => Alert.alert("Error", getErrorMessage(err)),
+      onSuccess: () => { Alert.alert(t("common.success"), t("categoryForm.updated")); router.back(); },
+      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!nameEn.trim()) e.nameEn = "Name (English) is required";
-    else if (nameEn.trim().length < 2) e.nameEn = "Name must be at least 2 characters";
-    if (!nameAr.trim()) e.nameAr = "Name (Arabic) is required";
+    if (!nameEn.trim()) e.nameEn = t("categoryForm.validationNameEnRequired");
+    else if (nameEn.trim().length < 2) e.nameEn = t("categoryForm.validationNameEnMinLength");
+    if (!nameAr.trim()) e.nameAr = t("categoryForm.validationNameArRequired");
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -76,33 +78,33 @@ export default function CategoryFormScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
           <Ionicons name="arrow-back" size={24} color={plate.text} />
         </TouchableOpacity>
-        <Text style={[gs.h3, { marginLeft: 12 }]}>{isEditing ? "Edit Category" : "New Category"}</Text>
+        <Text style={[gs.h3, { marginLeft: 12 }]}>{isEditing ? t("categoryForm.editTitle") : t("categoryForm.newTitle")}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: 20, backgroundColor: plate.background }} keyboardShouldPersistTaps="handled">
-        <SectionHeader title="Category Information" />
+        <SectionHeader title={t("categoryForm.categoryInfo")} />
 
-        <FormField label="Name (English)" value={nameEn} onChangeText={setNameEn} placeholder="Category name" required error={errors.nameEn} />
+        <FormField label={t("categoryForm.nameEn")} value={nameEn} onChangeText={setNameEn} placeholder={t("categoryForm.nameEnPlaceholder")} required error={errors.nameEn} />
 
-        <FormField label="Name (Arabic)" value={nameAr} onChangeText={setNameAr} placeholder="اسم الفئة" required error={errors.nameAr} />
+        <FormField label={t("categoryForm.nameAr")} value={nameAr} onChangeText={setNameAr} placeholder={t("categoryForm.nameArPlaceholder")} required error={errors.nameAr} />
 
         <FormField
-          label="Description (English)" value={descriptionEn} onChangeText={setDescriptionEn}
-          placeholder="Category description (optional)"
+          label={t("categoryForm.descEn")} value={descriptionEn} onChangeText={setDescriptionEn}
+          placeholder={t("categoryForm.descEnPlaceholder")}
           multiline numberOfLines={3}
           style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }}
         />
 
         <FormField
-          label="Description (Arabic)" value={descriptionAr} onChangeText={setDescriptionAr}
-          placeholder="وصف الفئة"
+          label={t("categoryForm.descAr")} value={descriptionAr} onChangeText={setDescriptionAr}
+          placeholder={t("categoryForm.descArPlaceholder")}
           multiline numberOfLines={3}
           style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }}
         />
 
         <TouchableOpacity style={[gs.button, { opacity: isLoading ? 0.6 : 1 }]} onPress={handleSubmit} disabled={isLoading}>
           <Ionicons name="save-outline" size={20} color={plate.background} style={{ marginRight: 8 }} />
-          <Text style={gs.buttonText}>{isLoading ? "Saving..." : "Save Category"}</Text>
+          <Text style={gs.buttonText}>{isLoading ? t("categoryForm.savingButton") : t("categoryForm.saveButton")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
