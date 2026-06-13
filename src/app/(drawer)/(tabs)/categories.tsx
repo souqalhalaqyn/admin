@@ -71,7 +71,8 @@ export default function CategoriesScreen() {
         data={categories}
         keyExtractor={(item: any) => item._id}
         renderItem={renderCategory}
-        contentContainerStyle={[gs.container]}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
         ListEmptyComponent={<EmptyState icon="folder-outline" title={t("category.emptyTitle")} />}
       />

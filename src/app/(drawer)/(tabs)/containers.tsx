@@ -80,7 +80,8 @@ export default function ContainersScreen() {
         data={containers}
         keyExtractor={(item: any) => item._id}
         renderItem={renderContainer}
-        contentContainerStyle={[gs.container]}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
         ListEmptyComponent={<EmptyState icon="layers-outline" title={t("container.emptyTitle")} />}
       />

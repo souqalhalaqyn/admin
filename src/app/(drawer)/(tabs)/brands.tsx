@@ -78,7 +78,8 @@ export default function BrandsScreen() {
         data={brands}
         keyExtractor={(item: any) => item._id}
         renderItem={renderBrand}
-        contentContainerStyle={[gs.container]}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
         ListEmptyComponent={<EmptyState icon="pricetags-outline" title={t("brand.emptyTitle")} />}
       />

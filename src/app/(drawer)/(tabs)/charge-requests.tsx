@@ -123,7 +123,7 @@ export default function ChargeRequestsScreen() {
 
   return (
     <View style={gs.safeArea}>
-      <View style={[gs.container]}>
+      <View style={{ paddingHorizontal: 20 }}>
         <View style={[gs.rowBetween, { marginTop: 16, marginBottom: 16 }]}>
           <Text style={gs.h2}>{t("chargeRequest.listTitle")}</Text>
           <TouchableOpacity onPress={() => refetch()}>
@@ -136,7 +136,8 @@ export default function ChargeRequestsScreen() {
         data={requests}
         keyExtractor={(item) => item._id}
         renderItem={renderItem}
-        contentContainerStyle={[gs.container, requests.length === 0 && { flex: 1 }]}
+        style={{ flex: 1 }}
+        contentContainerStyle={[{ paddingHorizontal: 20 }, requests.length === 0 && { flex: 1 }]}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
         ListEmptyComponent={<EmptyState icon="card-outline" title={t("chargeRequest.emptyList")} />}
       />

@@ -56,7 +56,8 @@ export default function UsersScreen() {
         data={users}
         keyExtractor={(item: any) => item._id}
         renderItem={renderUser}
-        contentContainerStyle={[gs.container, users.length === 0 && { flex: 1 }]}
+        style={{ flex: 1 }}
+        contentContainerStyle={[{ paddingHorizontal: 20 }, users.length === 0 && { flex: 1 }]}
         onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
         onEndReachedThreshold={0.5}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}

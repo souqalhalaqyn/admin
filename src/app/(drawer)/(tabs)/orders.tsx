@@ -86,7 +86,7 @@ export default function OrdersScreen() {
 
   return (
     <View style={gs.safeArea}>
-      <View style={[gs.container, { paddingBottom: 0 }]}>
+      <View style={{ paddingHorizontal: 20 }}>
         <View style={[gs.rowBetween, { marginTop: 16, marginBottom: 12 }]}>
           <Text style={gs.h2}>{t("order.listTitle")}</Text>
           <TouchableOpacity onPress={() => refetch()}>
@@ -121,7 +121,8 @@ export default function OrdersScreen() {
         data={orders}
         keyExtractor={(item: any) => item._id}
         renderItem={renderOrder}
-        contentContainerStyle={[gs.container, orders.length === 0 && { flex: 1 }]}
+        style={{ flex: 1 }}
+        contentContainerStyle={[{ paddingHorizontal: 20 }, orders.length === 0 && { flex: 1 }]}
         onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
         onEndReachedThreshold={0.5}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}

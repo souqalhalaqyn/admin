@@ -85,7 +85,8 @@ export default function ProductsScreen() {
         data={products}
         keyExtractor={(item: any) => item._id}
         renderItem={renderProduct}
-        contentContainerStyle={[gs.container, products.length === 0 && { flex: 1 }]}
+        style={{ flex: 1 }}
+        contentContainerStyle={[{ paddingHorizontal: 20 }, products.length === 0 && { flex: 1 }]}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
         ListEmptyComponent={<EmptyState icon="cube-outline" title={t("product.emptyTitle")} subtitle={t("product.emptySubtitle")} />}
       />

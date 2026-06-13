@@ -60,7 +60,7 @@ export default function OffersScreen() {
 
   return (
     <View style={gs.safeArea}>
-      <View style={[gs.container]}>
+      <View style={{ paddingHorizontal: 20 }}>
         <View style={[gs.rowBetween, { marginTop: 16, marginBottom: 16 }]}>
           <Text style={gs.h2}>{t("offer.listTitle")}</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
@@ -77,7 +77,8 @@ export default function OffersScreen() {
       <FlatList
         data={offers}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={[gs.container, offers.length === 0 && { flex: 1 }]}
+        style={{ flex: 1 }}
+        contentContainerStyle={[{ paddingHorizontal: 20 }, offers.length === 0 && { flex: 1 }]}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
         ListEmptyComponent={<EmptyState icon="pricetag-outline" title={t("offer.emptyList")} />}
         renderItem={({ item }) => {
