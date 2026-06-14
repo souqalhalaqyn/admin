@@ -55,11 +55,11 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "dce7e7e8-c196-4a53-ad55-b4cfd94bba2e"
+        "projectId": "14760687-3f8f-4af1-ab7c-c8b689bc16b6"
       }
     },
     "updates": {
-      "url": "https://u.expo.dev/dce7e7e8-c196-4a53-ad55-b4cfd94bba2e",
+      "url": "https://u.expo.dev/14760687-3f8f-4af1-ab7c-c8b689bc16b6",
       "enabled": true,
       "fallbackToCacheTimeout": 0,
       "checkAutomatically": "ON_LOAD"
