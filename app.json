@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Barber Admin",
-    "slug": "barbers-admin",
+    "slug": "souqalhalaqeen",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
@@ -33,17 +33,20 @@
           "image": "./assets/logo.png",
           "android": {
             "image": "./assets/logo.png",
-            "imageWidth": 76
+            "imageWidth": 300
           }
         }
       ],
       "expo-localization",
       "expo-image",
-      ["expo-build-properties", {
-        "android": {
-          "usesCleartextTraffic": true
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
         }
-      }]
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -52,7 +55,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "dce7e7e8-c196-4a53-ad55-b4cfd94bba2e"
+        "projectId": "28c84613-b6ec-42c0-bff2-cc774b86f0aa"
       }
     },
     "updates": {
@@ -64,6 +67,6 @@
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "owner": "rawad-ag"
+    "owner": "souqalhalaqeen-organaization"
   }
 }
