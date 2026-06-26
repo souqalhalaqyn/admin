@@ -2,7 +2,9 @@ import { useApiMutation, useApiQuery, queryKeys } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LoadingScreen from "@/components/LoadingScreen";
+import { Row } from "@/components/Row";
 import { useGlobalStyles } from "@/styles/global";
+import { localizedName } from "@/utils/localizedName";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { useState } from "react";
@@ -30,8 +32,9 @@ const statusLabelKey = (status: string) => `order.status${status.charAt(0).toUpp
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [confirmStatus, setConfirmStatus] = useState<string | null>(null);
+  const [stockWarnings, setStockWarnings] = useState<any[] | null>(null);
 
   const { data, refetch, isLoading } = useApiQuery<any>({
     url: `admin/orders/${id}`,
@@ -39,14 +42,26 @@ export default function OrderDetailScreen() {
     enabled: !!id,
   });
 
-  const updateStatusMutation = useApiMutation<any, { status: string }>({
+  const updateStatusMutation = useApiMutation<any, any>({
     method: "put",
     url: `admin/orders/${id}/status`,
     options: {
-      onSuccess: () => { refetch(); setConfirmStatus(null); Alert.alert(t("common.success"), t("order.statusUpdated")); },
+      onSuccess: (resp: any) => {
+        const warnings = resp?.meta?.stockWarnings;
+        if (warnings && warnings.length > 0) {
+          setStockWarnings(warnings);
+          return;
+        }
+        refetch(); setConfirmStatus(null); Alert.alert(t("common.success"), t("order.statusUpdated"));
+      },
       onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
+
+  const forceUpdate = () => {
+    setStockWarnings(null);
+    updateStatusMutation.mutate({ status: confirmStatus, force: true });
+  };
 
   const order = (data as any)?.data;
   const getStatusColor = (status: string) => STATUS_COLORS[status] ?? plate.graySecond;
@@ -71,7 +86,7 @@ export default function OrderDetailScreen() {
             <Row label={t("order.status")} value={t(statusLabelKey(order.status))} color={getStatusColor(order.status)} />
             <Row label={t("order.total")} value={`$${order.total?.toLocaleString() ?? 0}`} color={plate.primary} />
             <Row label={t("order.customer")} value={order.user?.phone ?? t("order.na")} />
-            <Row label={t("order.location")} value={order.location || t("order.na")} />
+            <Row label={t("order.location")} value={order.address || order.location || t("order.na")} />
             <Row label={t("order.date")} value={order.createdAt ? new Date(order.createdAt).toLocaleString() : t("order.na")} />
           </View>
         </View>
@@ -79,7 +94,14 @@ export default function OrderDetailScreen() {
         <View style={[gs.card, { padding: 16 }]}>
           <Text style={[gs.sectionHeader]}>{t("order.items", { count: order.items?.length ?? 0 })}</Text>
           {order.items?.map((item: any, i: number) => (
-            <View key={i} style={[gs.listItem, { paddingHorizontal: 0 }]}>
+            <TouchableOpacity
+              key={i}
+              style={[gs.listItem, { paddingHorizontal: 0 }]}
+              onPress={() => {
+                const productId = item.product?._id ?? item.product;
+                if (productId) router.push({ pathname: "/(drawer)/(tabs)/product-form" as any, params: { id: productId } });
+              }}
+            >
               <View style={{ flex: 1 }}>
                 <Text style={gs.label}>{item.name}</Text>
                 <Text style={gs.caption}>{t("order.qty", { qty: item.quantity, price: "$" + item.price })}</Text>
@@ -87,7 +109,7 @@ export default function OrderDetailScreen() {
               <Text style={[gs.textBold, { color: plate.primary }]}>
                 ${(item.quantity * item.price).toLocaleString()}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -139,16 +161,19 @@ export default function OrderDetailScreen() {
         onConfirm={() => confirmStatus && updateStatusMutation.mutate({ status: confirmStatus })}
         onCancel={() => setConfirmStatus(null)}
       />
+
+      <ConfirmDialog
+        visible={!!stockWarnings}
+        title={t("order.stockWarningTitle")}
+        message={stockWarnings?.map((w: any) =>
+          `• ${localizedName(w, i18n.language)} — ${t("order.stockWarningDetail", { qty: w.quantity, stock: w.stock })}`
+        ).join("\n") ?? ""}
+        confirmLabel={t("order.continueAnyway")}
+        onConfirm={forceUpdate}
+        onCancel={() => setStockWarnings(null)}
+      />
     </View>
   );
 }
 
-function Row({ label, value, color }: { label: string; value: string; color?: string }) {
-  const { gs, plate } = useGlobalStyles();
-  return (
-    <View style={[gs.rowBetween]}>
-      <Text style={gs.textSmall}>{label}</Text>
-      <Text style={[gs.label, color ? { color } : null]}>{value}</Text>
-    </View>
-  );
-}
+

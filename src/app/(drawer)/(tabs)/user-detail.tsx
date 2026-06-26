@@ -2,8 +2,10 @@ import { useApiMutation, useApiQuery, queryKeys } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import FormField from "@/components/FormField";
 import LoadingScreen from "@/components/LoadingScreen";
+import { Row } from "@/components/Row";
 import SectionHeader from "@/components/SectionHeader";
 import { useGlobalStyles } from "@/styles/global";
+import { localizedName } from "@/utils/localizedName";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { useState } from "react";
@@ -13,7 +15,7 @@ import { Alert, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 
 export default function UserDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showBalanceForm, setShowBalanceForm] = useState(false);
   const [balanceAmount, setBalanceAmount] = useState("");
 
@@ -108,9 +110,9 @@ export default function UserDetailScreen() {
             {user.locations.map((loc: any, i: number) => (
               <View key={i} style={[gs.listItem, { paddingHorizontal: 0 }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={gs.label}>{loc.name}</Text>
+                  <Text style={gs.label}>{localizedName(loc, i18n.language)}</Text>
                   <Text style={gs.caption}>
-                    {[loc.state?.name, loc.region?.name, loc.way?.name, loc.address].filter(Boolean).join(", ")}
+                    {[localizedName(loc.state, i18n.language), localizedName(loc.way, i18n.language), localizedName(loc.branch, i18n.language), loc.address].filter(Boolean).join(", ")}
                   </Text>
                 </View>
               </View>
@@ -136,12 +138,4 @@ export default function UserDetailScreen() {
   );
 }
 
-function Row({ label, value, color }: { label: string; value: string; color?: string }) {
-  const { gs } = useGlobalStyles();
-  return (
-    <View style={[gs.rowBetween]}>
-      <Text style={gs.textSmall}>{label}</Text>
-      <Text style={[gs.label, color ? { color } : null]}>{value}</Text>
-    </View>
-  );
-}
+

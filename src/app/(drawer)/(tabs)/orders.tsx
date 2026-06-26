@@ -1,13 +1,11 @@
-import { useApiMutation, useInfiniteApiQuery, queryKeys } from "@/api";
-import { getErrorMessage } from "@/api/utils/errorHandler";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import { useInfiniteApiQuery, queryKeys } from "@/api";
 import EmptyState from "@/components/EmptyState";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useGlobalStyles } from "@/styles/global";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -27,26 +25,12 @@ export default function OrdersScreen() {
   const { plate, gs } = useGlobalStyles();
   const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [confirmItem, setConfirmItem] = useState<{ id: string; status: string } | null>(null);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } = useInfiniteApiQuery<any>({
     url: "admin/orders",
     queryKey: queryKeys.admin.orders.list({ status: statusFilter }),
     params: { status: statusFilter ?? undefined },
   });
-
-  const updateStatusMutation = useApiMutation<any, { status: string }>({
-    method: "put",
-    url: "",
-    options: {
-      onSuccess: () => { refetch(); setConfirmItem(null); },
-      onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
-    },
-  });
-
-  const handleUpdateStatus = useCallback((id: string, newStatus: string) => {
-    updateStatusMutation.mutate({ status: newStatus }, {});
-  }, [updateStatusMutation]);
 
   const orders = data?.pages.flatMap((p) => p.data) ?? [];
 
@@ -130,14 +114,6 @@ export default function OrdersScreen() {
         ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={{ padding: 20 }} /> : null}
       />
 
-      <ConfirmDialog
-        visible={!!confirmItem}
-        title={t("order.confirmUpdateTitle")}
-        message={t("order.confirmUpdateMessage")}
-        confirmLabel={t("order.confirmUpdateButton")}
-        onConfirm={() => confirmItem && handleUpdateStatus(confirmItem.id, confirmItem.status)}
-        onCancel={() => setConfirmItem(null)}
-      />
     </View>
   );
 }

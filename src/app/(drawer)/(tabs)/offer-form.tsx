@@ -1,53 +1,73 @@
-import { getApiClient, queryKeys, useApiQuery } from "@/api";
+import { getApiClient, useApiMutation, useApiQuery } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import FormField from "@/components/FormField";
+import ImageField from "@/components/ImageField";
 import LoadingScreen from "@/components/LoadingScreen";
 import PickerSelect from "@/components/PickerSelect";
 import SectionHeader from "@/components/SectionHeader";
 import { useGlobalStyles } from "@/styles/global";
+import { localizedName } from "@/utils/localizedName";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
-interface ContainerOption {
-  _id: string;
-  name: string;
+interface ProductForm {
+  nameEn: string; nameAr: string; price: string; stock: string;
+  shortDescriptionEn: string; shortDescriptionAr: string;
+  longDescriptionEn: string; longDescriptionAr: string;
+  images: string[]; tagsEn: string; tagsAr: string;
+  aliasesEn: string; aliasesAr: string; notesEn: string; notesAr: string;
 }
 
-interface ProductOption {
-  _id: string;
-  name: string;
-  price: number;
-  container: string;
-}
+const emptyProduct = (): ProductForm => ({
+  nameEn: "", nameAr: "", price: "", stock: "0",
+  shortDescriptionEn: "", shortDescriptionAr: "",
+  longDescriptionEn: "", longDescriptionAr: "",
+  images: [], tagsEn: "", tagsAr: "", aliasesEn: "", aliasesAr: "", notesEn: "", notesAr: "",
+});
 
 export default function OfferFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isEditing = !!id;
+  const [step, setStep] = useState(0);
 
-  const [containerId, setContainerId] = useState("");
-  const [productId, setProductId] = useState("");
+  const [nameEn, setNameEn] = useState("");
+  const [nameAr, setNameAr] = useState("");
+  const [shortDescriptionEn, setShortDescriptionEn] = useState("");
+  const [shortDescriptionAr, setShortDescriptionAr] = useState("");
+  const [longDescriptionEn, setLongDescriptionEn] = useState("");
+  const [longDescriptionAr, setLongDescriptionAr] = useState("");
+  const [brandId, setBrandId] = useState("");
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [isActive, setIsActive] = useState(true);
+
+  const [products, setProducts] = useState<ProductForm[]>([emptyProduct()]);
+  const [expandedProduct, setExpandedProduct] = useState<number | null>(0);
+
   const [totalQuantity, setTotalQuantity] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
   const [unitSellPrice, setUnitSellPrice] = useState("");
   const [commissionPercent, setCommissionPercent] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const { data: containersData } = useApiQuery<{ data: ContainerOption[] }>({
-    url: "containers",
-    queryKey: queryKeys.containers.list(),
-    params: { limit: 100 },
+  const { data: brandsData } = useApiQuery<any>({
+    url: "brands", queryKey: ["api", "brands", "list", "all"], params: { limit: 200 },
+  });
+  const { data: categoriesData } = useApiQuery<any>({
+    url: "categories", queryKey: ["api", "categories", "list", "all"], params: { limit: 200 },
   });
 
-  const { data: productsData } = useApiQuery<{ data: ProductOption[] }>({
-    url: "products",
-    queryKey: queryKeys.products.list(),
-    params: { limit: 200 },
-  });
+  const brandOptions = ((brandsData as any)?.data ?? []).map((b: any) => ({
+    label: localizedName(b, i18n.language), value: b._id,
+  }));
+  const categoryOptions = ((categoriesData as any)?.data ?? []).map((c: any) => ({
+    label: localizedName(c, i18n.language), value: c._id,
+  }));
 
   const { data: offerData, isLoading: loadingOffer } = useApiQuery<any>({
     url: `offers/admin/${id}`,
@@ -58,8 +78,16 @@ export default function OfferFormScreen() {
   useEffect(() => {
     if (offerData?.data) {
       const o = offerData.data;
-      setContainerId(o.container?._id ?? "");
-      setProductId(o.product?._id ?? "");
+      const c = o.container || {};
+      setNameEn(c.nameEn ?? "");
+      setNameAr(c.nameAr ?? "");
+      setShortDescriptionEn(c.shortDescriptionEn ?? "");
+      setShortDescriptionAr(c.shortDescriptionAr ?? "");
+      setLongDescriptionEn(c.longDescriptionEn ?? "");
+      setLongDescriptionAr(c.longDescriptionAr ?? "");
+      setBrandId(c.brand?._id ?? c.brand ?? "");
+      setCategoryIds((c.categories ?? []).map((cat: any) => cat._id ?? cat));
+      setIsActive(c.isActive ?? true);
       setTotalQuantity(String(o.totalQuantity ?? ""));
       setOfferPrice(String(o.offerPrice ?? ""));
       setUnitSellPrice(String(o.unitSellPrice ?? ""));
@@ -67,40 +95,134 @@ export default function OfferFormScreen() {
     }
   }, [offerData]);
 
-  const containerOptions = useMemo(() => {
-    return (containersData?.data ?? []).map((c) => ({
-      label: c.name,
-      value: c._id,
-    }));
-  }, [containersData]);
+  const handleAddImage = useCallback(async (productIndex: number) => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) { Alert.alert(t("common.permissionRequired")); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
+    if (result.canceled || !result.assets?.[0]) return;
+    try {
+      const localUri = result.assets[0].uri;
+      const filename = localUri.split("/").pop() || "image.jpg";
+      const formData = new FormData();
+      formData.append("images", { uri: localUri, name: filename, type: "image/jpeg" } as any);
+      const client = getApiClient();
+      const response = await client.post("/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
+      const filenames: string[] = response.data?.data ?? [];
+      setProducts((prev) => {
+        const next = [...prev];
+        next[productIndex] = { ...next[productIndex], images: [...next[productIndex].images, ...filenames] };
+        return next;
+      });
+    } catch (err) { Alert.alert(t("common.error"), getErrorMessage(err)); }
+  }, [t]);
 
-  const filteredProducts = useMemo(() => {
-    return (productsData?.data ?? []).filter((p) => !containerId || p.container === containerId);
-  }, [productsData, containerId]);
+  const updateProduct = (index: number, field: keyof ProductForm, value: any) => {
+    setProducts((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
 
-  const productOptions = useMemo(() => {
-    return filteredProducts.map((p) => ({
-      label: `${p.name} ($${p.price?.toFixed(2) ?? "0"})`,
-      value: p._id,
-    }));
-  }, [filteredProducts]);
+  const addProduct = () => {
+    setProducts((prev) => [...prev, emptyProduct()]);
+    setExpandedProduct(products.length);
+  };
+
+  const removeProduct = (index: number) => {
+    if (products.length <= 1) return;
+    setProducts((prev) => prev.filter((_, i) => i !== index));
+    setExpandedProduct((prev) => (prev === index ? null : prev));
+  };
+
+  const toggleCategory = (catId: string) => {
+    setCategoryIds((prev) => (prev.includes(catId) ? prev.filter((c) => c !== catId) : [...prev, catId]));
+  };
 
   const handleSave = async () => {
-    if (!containerId || !productId || !totalQuantity || !offerPrice || !unitSellPrice || !commissionPercent) {
-      Alert.alert("", t("offer.validationRequired"));
-      return;
+    if (!brandId || !nameEn.trim() || !nameAr.trim()) {
+      Alert.alert("", t("offer.validationContainerRequired")); return;
     }
+    for (let i = 0; i < products.length; i++) {
+      const p = products[i];
+      if (!p.nameEn.trim() || !p.price || isNaN(Number(p.price)) || Number(p.price) <= 0) {
+        Alert.alert("", t("offer.validationProductRequired", { index: i + 1 })); return;
+      }
+    }
+    if (!totalQuantity || Number(totalQuantity) < 1 || !offerPrice || Number(offerPrice) <= 0 || !unitSellPrice || Number(unitSellPrice) <= 0 || !commissionPercent || Number(commissionPercent) < 0) {
+      Alert.alert("", t("offer.validationRequired")); return;
+    }
+
     setSaving(true);
     try {
+      const client = getApiClient();
+      let containerId: string;
+
+      if (isEditing && offerData?.data?.container?._id) {
+        containerId = offerData.data.container._id;
+        await client.put(`containers/${containerId}`, {
+          nameEn: nameEn.trim(), nameAr: nameAr.trim(),
+          shortDescriptionEn: shortDescriptionEn.trim(), shortDescriptionAr: shortDescriptionAr.trim(),
+          longDescriptionEn: longDescriptionEn.trim(), longDescriptionAr: longDescriptionAr.trim(),
+          brand: brandId, categories: categoryIds, isActive,
+        });
+      } else {
+        const containerRes = await client.post("containers", {
+          nameEn: nameEn.trim(), nameAr: nameAr.trim(),
+          shortDescriptionEn: shortDescriptionEn.trim(), shortDescriptionAr: shortDescriptionAr.trim(),
+          longDescriptionEn: longDescriptionEn.trim(), longDescriptionAr: longDescriptionAr.trim(),
+          brand: brandId, categories: categoryIds, isActive,
+        });
+        containerId = containerRes.data?.data?._id;
+        if (!containerId) throw new Error("Failed to create container");
+      }
+
+      let productIds: string[] = [];
+      for (let i = 0; i < products.length; i++) {
+        const p = products[i];
+        if (isEditing && i === 0 && offerData?.data?.product?._id) {
+          await client.put(`products/${offerData.data.product._id}`, {
+            nameEn: p.nameEn.trim(), nameAr: p.nameAr.trim(),
+            shortDescriptionEn: p.shortDescriptionEn.trim(), shortDescriptionAr: p.shortDescriptionAr.trim(),
+            longDescriptionEn: p.longDescriptionEn.trim(), longDescriptionAr: p.longDescriptionAr.trim(),
+            price: Number(p.price), stock: Number(p.stock) || 0,
+            container: containerId, images: p.images,
+            tagsEn: p.tagsEn.split(",").map((x: string) => x.trim()).filter(Boolean),
+            tagsAr: p.tagsAr.split(",").map((x: string) => x.trim()).filter(Boolean),
+            aliasesEn: p.aliasesEn.split(",").map((x: string) => x.trim()).filter(Boolean),
+            aliasesAr: p.aliasesAr.split(",").map((x: string) => x.trim()).filter(Boolean),
+            notesEn: p.notesEn.split("\n").map((x: string) => x.trim()).filter(Boolean),
+            notesAr: p.notesAr.split("\n").map((x: string) => x.trim()).filter(Boolean),
+          });
+          productIds.push(offerData.data.product._id);
+        } else {
+          const prodRes = await client.post("products", {
+            nameEn: p.nameEn.trim(), nameAr: p.nameAr.trim(),
+            shortDescriptionEn: p.shortDescriptionEn.trim(), shortDescriptionAr: p.shortDescriptionAr.trim(),
+            longDescriptionEn: p.longDescriptionEn.trim(), longDescriptionAr: p.longDescriptionAr.trim(),
+            price: Number(p.price), stock: Number(p.stock) || 0,
+            container: containerId, images: p.images,
+            tagsEn: p.tagsEn.split(",").map((x: string) => x.trim()).filter(Boolean),
+            tagsAr: p.tagsAr.split(",").map((x: string) => x.trim()).filter(Boolean),
+            aliasesEn: p.aliasesEn.split(",").map((x: string) => x.trim()).filter(Boolean),
+            aliasesAr: p.aliasesAr.split(",").map((x: string) => x.trim()).filter(Boolean),
+            notesEn: p.notesEn.split("\n").map((x: string) => x.trim()).filter(Boolean),
+            notesAr: p.notesAr.split("\n").map((x: string) => x.trim()).filter(Boolean),
+          });
+          const pid = prodRes.data?.data?._id;
+          if (pid) productIds.push(pid);
+        }
+      }
+
       const body = {
         container: containerId,
-        product: productId,
+        product: productIds[0],
         totalQuantity: Number(totalQuantity),
         offerPrice: Number(offerPrice),
         unitSellPrice: Number(unitSellPrice),
         commissionPercent: Number(commissionPercent),
       };
-      const client = getApiClient();
+
       if (isEditing) {
         await client.put(`offers/admin/${id}`, body);
         Alert.alert("", t("offer.updated"));
@@ -118,6 +240,39 @@ export default function OfferFormScreen() {
 
   if (isEditing && loadingOffer) return <LoadingScreen />;
 
+  const renderStepIndicator = () => (
+    <View style={{ flexDirection: "row", justifyContent: "center", gap: 8, paddingVertical: 12, paddingHorizontal: 20 }}>
+      {[t("offer.containerStepTitle"), t("offer.productStepTitle"), t("offer.offerStepTitle")].map((label, i) => (
+        <TouchableOpacity
+          key={i}
+          style={[gs.tag, { backgroundColor: step === i ? plate.primary : plate.gray, flex: 1, alignItems: "center" }]}
+          onPress={() => step > i && setStep(i)}
+        >
+          <Text style={[gs.tagText, { color: step === i ? plate.background : plate.text, fontWeight: "600", fontSize: 12 }]}>
+            {i + 1}. {label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  const renderStepNav = (canNext: boolean, nextLabel?: string) => (
+    <View style={{ flexDirection: "row", gap: 12, marginTop: 16, marginBottom: 32 }}>
+      {step > 0 && (
+        <TouchableOpacity style={[gs.button, { flex: 1, backgroundColor: plate.gray }]} onPress={() => setStep(step - 1)}>
+          <Text style={[gs.buttonText, { color: plate.text }]}>{t("offer.prevStep")}</Text>
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity
+        style={[gs.button, { flex: 1, opacity: canNext ? 1 : 0.5 }]}
+        onPress={() => canNext && setStep(step + 1)}
+        disabled={!canNext}
+      >
+        <Text style={gs.buttonText}>{nextLabel || t("offer.nextStep")}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={[gs.containerRow, { padding: 16, backgroundColor: plate.backgroundSecond, borderBottomWidth: 1, borderBottomColor: plate.gray }]}>
@@ -127,70 +282,114 @@ export default function OfferFormScreen() {
         <Text style={[gs.h3, { marginLeft: 12 }]}>{isEditing ? t("offer.formEditTitle") : t("offer.formNewTitle")}</Text>
       </View>
 
+      {renderStepIndicator()}
+
       <ScrollView contentContainerStyle={[gs.container, gs.scrollContent]}>
-        <SectionHeader title={t("offer.formTitle")} />
+        {step === 0 && (
+          <>
+            <SectionHeader title={t("offer.containerStepTitle")} />
+            <FormField label={t("containerForm.nameEn")} value={nameEn} onChangeText={setNameEn} placeholder={t("containerForm.nameEnPlaceholder")} required />
+            <FormField label={t("containerForm.nameAr")} value={nameAr} onChangeText={setNameAr} placeholder={t("containerForm.nameArPlaceholder")} required />
+            <FormField label={t("containerForm.shortDescEn")} value={shortDescriptionEn} onChangeText={setShortDescriptionEn} placeholder={t("containerForm.shortDescEnPlaceholder")} />
+            <FormField label={t("containerForm.shortDescAr")} value={shortDescriptionAr} onChangeText={setShortDescriptionAr} placeholder={t("containerForm.shortDescArPlaceholder")} />
+            <FormField label={t("containerForm.longDescEn")} value={longDescriptionEn} onChangeText={setLongDescriptionEn} placeholder={t("containerForm.longDescEnPlaceholder")} multiline numberOfLines={3} style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }} />
+            <FormField label={t("containerForm.longDescAr")} value={longDescriptionAr} onChangeText={setLongDescriptionAr} placeholder={t("containerForm.longDescArPlaceholder")} multiline numberOfLines={3} style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }} />
+            <PickerSelect label={t("containerForm.brand")} options={brandOptions} selected={brandId} onSelect={setBrandId} required placeholder={t("containerForm.brandPlaceholder")} />
+            <View style={{ marginBottom: 16 }}>
+              <Text style={[gs.label, { marginBottom: 6 }]}>{t("containerForm.categories")}</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {categoryOptions.map((opt: { label: string; value: string }) => (
+                  <TouchableOpacity key={opt.value} style={[gs.tag, { backgroundColor: categoryIds.includes(opt.value) ? plate.primary : plate.gray }]} onPress={() => toggleCategory(opt.value)}>
+                    <Text style={[gs.tagText, { color: categoryIds.includes(opt.value) ? plate.background : plate.text }]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            <TouchableOpacity style={[gs.containerRow, { marginBottom: 24 }]} onPress={() => setIsActive(!isActive)}>
+              <Ionicons name={isActive ? "checkbox" : "square-outline"} size={22} color={isActive ? plate.green : plate.graySecond} />
+              <Text style={[gs.text, { marginLeft: 8 }]}>{t("containerForm.activeLabel")}</Text>
+            </TouchableOpacity>
+            {renderStepNav(!!brandId && !!nameEn.trim() && !!nameAr.trim())}
+          </>
+        )}
 
-        <PickerSelect
-          label={t("offer.container")}
-          options={containerOptions}
-          selected={containerId}
-          onSelect={(val) => { setContainerId(val); setProductId(""); }}
-          required
-          placeholder={t("offer.containerPlaceholder")}
-        />
+        {step === 1 && (
+          <>
+            <View style={[gs.containerRow, { justifyContent: "space-between", marginBottom: 12 }]}>
+              <SectionHeader title={t("offer.productStepTitle")} />
+              <TouchableOpacity style={[gs.buttonSmall, { paddingHorizontal: 12 }]} onPress={addProduct}>
+                <Ionicons name="add" size={18} color={plate.background} />
+                <Text style={[gs.buttonText, { marginLeft: 4 }]}>{t("offer.addProduct")}</Text>
+              </TouchableOpacity>
+            </View>
+            {products.map((p, i) => (
+              <View key={i} style={[gs.card, { padding: 12, marginBottom: 12 }]}>
+                <TouchableOpacity style={[gs.containerRow, { justifyContent: "space-between" }]} onPress={() => setExpandedProduct(expandedProduct === i ? null : i)}>
+                  <Text style={[gs.label, { flex: 1 }]} numberOfLines={1}>
+                    {p.nameEn || `${t("offer.productLabel")} ${i + 1}`}
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <Ionicons name={expandedProduct === i ? "chevron-up" : "chevron-down"} size={18} color={plate.textSecond} />
+                    {products.length > 1 && (
+                      <TouchableOpacity onPress={() => removeProduct(i)}>
+                        <Ionicons name="trash-outline" size={18} color={plate.red} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </TouchableOpacity>
+                {expandedProduct === i && (
+                  <View style={{ marginTop: 12 }}>
+                    <FormField label={t("productForm.nameEn")} value={p.nameEn} onChangeText={(v) => updateProduct(i, "nameEn", v)} placeholder={t("productForm.nameEnPlaceholder")} required />
+                    <FormField label={t("productForm.nameAr")} value={p.nameAr} onChangeText={(v) => updateProduct(i, "nameAr", v)} placeholder={t("productForm.nameArPlaceholder")} required />
+                    <FormField label={t("productForm.shortDescEn")} value={p.shortDescriptionEn} onChangeText={(v) => updateProduct(i, "shortDescriptionEn", v)} placeholder={t("productForm.shortDescEnPlaceholder")} />
+                    <FormField label={t("productForm.shortDescAr")} value={p.shortDescriptionAr} onChangeText={(v) => updateProduct(i, "shortDescriptionAr", v)} placeholder={t("productForm.shortDescArPlaceholder")} />
+                    <FormField label={t("productForm.longDescEn")} value={p.longDescriptionEn} onChangeText={(v) => updateProduct(i, "longDescriptionEn", v)} placeholder={t("productForm.longDescEnPlaceholder")} multiline numberOfLines={3} style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }} />
+                    <FormField label={t("productForm.longDescAr")} value={p.longDescriptionAr} onChangeText={(v) => updateProduct(i, "longDescriptionAr", v)} placeholder={t("productForm.longDescArPlaceholder")} multiline numberOfLines={3} style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }} />
+                    <View style={{ flexDirection: "row", gap: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <FormField label={t("productForm.price")} value={p.price} onChangeText={(v) => updateProduct(i, "price", v)} placeholder={t("productForm.pricePlaceholder")} keyboardType="decimal-pad" required />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <FormField label={t("productForm.stock")} value={p.stock} onChangeText={(v) => updateProduct(i, "stock", v)} placeholder={t("productForm.stockPlaceholder")} keyboardType="number-pad" />
+                      </View>
+                    </View>
+                    <ImageField images={p.images} label={t("productForm.images")} onAdd={() => handleAddImage(i)} onRemove={(idx) => setProducts((prev) => { const next = [...prev]; next[i] = { ...next[i], images: next[i].images.filter((_, fi) => fi !== idx) }; return next; })} />
+                    <FormField label={t("productForm.tagsEn")} value={p.tagsEn} onChangeText={(v) => updateProduct(i, "tagsEn", v)} placeholder={t("productForm.tagsEnPlaceholder")} />
+                    <FormField label={t("productForm.tagsAr")} value={p.tagsAr} onChangeText={(v) => updateProduct(i, "tagsAr", v)} placeholder={t("productForm.tagsArPlaceholder")} />
+                    <FormField label={t("productForm.aliasesEn")} value={p.aliasesEn} onChangeText={(v) => updateProduct(i, "aliasesEn", v)} placeholder={t("productForm.aliasesEnPlaceholder")} />
+                    <FormField label={t("productForm.aliasesAr")} value={p.aliasesAr} onChangeText={(v) => updateProduct(i, "aliasesAr", v)} placeholder={t("productForm.aliasesArPlaceholder")} />
+                    <FormField label={t("productForm.notesEn")} value={p.notesEn} onChangeText={(v) => updateProduct(i, "notesEn", v)} placeholder={t("productForm.notesEnPlaceholder")} multiline numberOfLines={2} style={{ minHeight: 50, textAlignVertical: "top", paddingTop: 12 }} />
+                    <FormField label={t("productForm.notesAr")} value={p.notesAr} onChangeText={(v) => updateProduct(i, "notesAr", v)} placeholder={t("productForm.notesArPlaceholder")} multiline numberOfLines={2} style={{ minHeight: 50, textAlignVertical: "top", paddingTop: 12 }} />
+                  </View>
+                )}
+              </View>
+            ))}
+            {renderStepNav(products.some((p) => p.nameEn.trim() && p.price && Number(p.price) > 0))}
+          </>
+        )}
 
-        <PickerSelect
-          label={t("offer.product")}
-          options={productOptions}
-          selected={productId}
-          onSelect={setProductId}
-          required
-          placeholder={t("offer.productPlaceholder")}
-        />
+        {step === 2 && (
+          <>
+            <SectionHeader title={t("offer.offerStepTitle")} />
+            <FormField label={t("offer.totalQuantity")} placeholder={t("offer.totalQuantityPlaceholder")} keyboardType="numeric" value={totalQuantity} onChangeText={setTotalQuantity} required />
+            <FormField label={t("offer.offerPrice")} placeholder={t("offer.offerPricePlaceholder")} keyboardType="decimal-pad" value={offerPrice} onChangeText={setOfferPrice} required />
+            <FormField label={t("offer.unitSellPrice")} placeholder={t("offer.unitSellPricePlaceholder")} keyboardType="decimal-pad" value={unitSellPrice} onChangeText={setUnitSellPrice} required />
+            <FormField label={t("offer.commissionPercent")} placeholder={t("offer.commissionPercentPlaceholder")} keyboardType="numeric" value={commissionPercent} onChangeText={setCommissionPercent} required />
 
-        <FormField
-          label={t("offer.totalQuantity")}
-          placeholder={t("offer.totalQuantityPlaceholder")}
-          keyboardType="numeric"
-          value={totalQuantity}
-          onChangeText={setTotalQuantity}
-          required
-        />
-
-        <FormField
-          label={t("offer.offerPrice")}
-          placeholder={t("offer.offerPricePlaceholder")}
-          keyboardType="decimal-pad"
-          value={offerPrice}
-          onChangeText={setOfferPrice}
-          required
-        />
-
-        <FormField
-          label={t("offer.unitSellPrice")}
-          placeholder={t("offer.unitSellPricePlaceholder")}
-          keyboardType="decimal-pad"
-          value={unitSellPrice}
-          onChangeText={setUnitSellPrice}
-          required
-        />
-
-        <FormField
-          label={t("offer.commissionPercent")}
-          placeholder={t("offer.commissionPercentPlaceholder")}
-          keyboardType="numeric"
-          value={commissionPercent}
-          onChangeText={setCommissionPercent}
-          required
-        />
-
-        <TouchableOpacity
-          style={[gs.button, { marginTop: 16 }]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          <Text style={gs.buttonText}>{saving ? t("common.loading") : t("offer.saveButton")}</Text>
-        </TouchableOpacity>
+            {step > 0 && (
+              <TouchableOpacity style={[gs.button, { marginTop: 8, backgroundColor: plate.gray }]} onPress={() => setStep(step - 1)}>
+                <Text style={[gs.buttonText, { color: plate.text }]}>{t("offer.prevStep")}</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[gs.button, { marginTop: 8 }]}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              <Text style={gs.buttonText}>{saving ? t("common.loading") : t("offer.saveButton")}</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

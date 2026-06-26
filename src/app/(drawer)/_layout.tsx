@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { label: "containers", icon: "layers", route: "/(drawer)/(tabs)/containers" },
   { label: "brands", icon: "pricetags", route: "/(drawer)/(tabs)/brands" },
   { label: "categories", icon: "folder", route: "/(drawer)/(tabs)/categories" },
+  { label: "locations", icon: "location", route: "/(drawer)/(tabs)/locations" },
   { label: "users", icon: "people", route: "/(drawer)/(tabs)/users" },
   { label: "offers", icon: "pricetags", route: "/(drawer)/(tabs)/offers" },
   { label: "chargeRequests", icon: "card", route: "/(drawer)/(tabs)/charge-requests" },

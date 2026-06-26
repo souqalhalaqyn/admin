@@ -4,6 +4,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useGlobalStyles } from "@/styles/global";
+import { localizedName } from "@/utils/localizedName";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
@@ -25,14 +26,14 @@ interface OfferData {
   commissionPercent: number;
   totalProfitDistributed: number;
   status: string;
-  container?: { name?: string };
-  product?: { name?: string; price?: number };
+  container?: { name?: string; nameEn?: string; nameAr?: string };
+  product?: { name?: string; nameEn?: string; nameAr?: string; price?: number };
   buyer?: { phone?: string };
 }
 
 export default function OffersScreen() {
   const { plate, gs } = useGlobalStyles();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useApiQuery<{ data: OfferData[] }>({
@@ -89,7 +90,7 @@ export default function OffersScreen() {
               onPress={() => router.push({ pathname: "/(drawer)/(tabs)/offer-form" as any, params: { id: item._id } })}
             >
               <View style={[gs.rowBetween, { marginBottom: 8 }]}>
-                <Text style={[gs.label, { flex: 1 }]} numberOfLines={1}>{item.product?.name ?? "—"}</Text>
+                <Text style={[gs.label, { flex: 1 }]} numberOfLines={1}>{localizedName(item.product, i18n.language) || "—"}</Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <View style={[gs.badge, { backgroundColor: getStatusColor(item.status) + "20" }]}>
                     <Text style={[gs.badgeText, { color: getStatusColor(item.status), fontSize: 11 }]}>
@@ -103,7 +104,7 @@ export default function OffersScreen() {
               </View>
               <View style={{ gap: 2 }}>
                 <Text style={[gs.textSmall]}>
-                  {t("offer.container")}: {item.container?.name ?? "—"}
+                  {t("offer.container")}: {localizedName(item.container, i18n.language) || "—"}
                 </Text>
                 <Text style={[gs.textSmall]}>
                   {t("offer.soldLabel", { sold: item.soldQuantity, total: item.totalQuantity })}

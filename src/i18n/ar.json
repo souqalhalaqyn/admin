@@ -13,7 +13,10 @@
     "deleted": "تم الحذف",
     "uploadError": "خطأ في الرفع",
     "permissionRequired": "صلاحية مطلوبة",
-    "select": "اختيار..."
+    "select": "اختيار...",
+    "required": "الحقول المطلوبة مفقودة",
+    "add": "إضافة",
+    "confirmDelete": "حذف هذا العنصر؟"
   },
   "drawer": {
     "admin": "مشرف",
@@ -29,6 +32,7 @@
     "users": "المستخدمين",
     "offers": "العروض",
     "chargeRequests": "طلبات الشحن",
+    "locations": "المواقع",
     "settings": "الإعدادات"
   },
   "auth": {
@@ -87,7 +91,10 @@
     "confirmUpdateTitle": "تحديث حالة الطلب",
     "confirmUpdateMessage": "تغيير حالة الطلب؟",
     "confirmChangeMessage": "تغيير الحالة إلى \"{status}\"؟",
-    "confirmUpdateButton": "تحديث"
+    "confirmUpdateButton": "تحديث",
+    "stockWarningTitle": "المخزون غير كافٍ",
+    "stockWarningDetail": "الكمية المطلوبة {qty}، المتوفر {stock}",
+    "continueAnyway": "متابعة على أي حال"
   },
   "product": {
     "listTitle": "المنتجات",
@@ -341,7 +348,61 @@
     "saveButton": "حفظ العرض",
     "created": "تم إنشاء العرض",
     "updated": "تم تحديث العرض",
-    "validationRequired": "جميع الحقول مطلوبة"
+    "validationRequired": "جميع الحقول مطلوبة",
+    "containerStepTitle": "الحاوية",
+    "productStepTitle": "المنتجات",
+    "offerStepTitle": "تفاصيل العرض",
+    "nextStep": "التالي",
+    "prevStep": "السابق",
+    "addProduct": "إضافة منتج",
+    "productLabel": "المنتج",
+    "validationContainerRequired": "جميع حقول الحاوية مطلوبة",
+    "validationProductRequired": "المنتج #{index} ينقصه حقول مطلوبة"
+  },
+
+  "ads": {
+    "listTitle": "طلبات الإعلانات",
+    "emptyList": "لا توجد طلبات إعلانات",
+    "statusPending": "قيد الانتظار",
+    "statusApproved": "مقبول",
+    "statusRejected": "مرفوض",
+    "filterAll": "الكل",
+    "filterPending": "قيد الانتظار",
+    "filterApproved": "مقبول",
+    "filterRejected": "مرفوض",
+    "products": "منتجات",
+    "approve": "قبول",
+    "reject": "رفض",
+    "rejectionReason": "السبب",
+    "rejectTitle": "سبب الرفض",
+    "rejectPlaceholder": "أدخل سبب الرفض..."
+  },
+
+  "update": {
+    "title": "تحديث متاح",
+    "description": "نسخة جديدة من التطبيق متاحة. يرجى تنزيل أحدث إصدار وإعادة التثبيت.",
+    "currentVersion": "النسخة الحالية",
+    "newVersion": "النسخة الجديدة",
+    "instructions": "بعد التنزيل، يرجى إلغاء تثبيت التطبيق القديم أولاً، ثم تثبيت ملف APK الجديد.",
+    "downloadButton": "تنزيل أحدث إصدار"
+  },
+
+  "locations": {
+    "states": "المناطق",
+    "directDelivery": "توصيل مباشر",
+    "addState": "إضافة منطقة",
+    "editState": "تعديل المنطقة",
+    "emptyStates": "لا توجد مناطق بعد",
+    "waysOf": "شركات التوصيل - {name}",
+    "addWay": "إضافة شركة توصيل",
+    "editWay": "تعديل شركة التوصيل",
+    "emptyWays": "لا توجد شركات توصيل بعد",
+    "branchesOf": "الفروع - {name}",
+    "addBranch": "إضافة فرع",
+    "editBranch": "تعديل الفرع",
+    "emptyBranches": "لا توجد فروع بعد",
+    "nameEn": "الاسم (بالإنجليزية)",
+    "nameAr": "الاسم (بالعربية)"
   },
 
   "language": {

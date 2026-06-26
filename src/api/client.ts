@@ -76,6 +76,7 @@ function createApiClient(config?: Partial<ApiConfig>): AxiosInstance {
     (reqConfig: InternalAxiosRequestConfig) => {
       const lang = i18n.language === "ar" ? "ar" : "en";
       reqConfig.headers["Accept-Language"] = lang;
+      reqConfig.headers["x-app"] = "admin";
       return reqConfig;
     },
     (error: AxiosError) => Promise.reject(error),

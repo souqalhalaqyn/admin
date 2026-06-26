@@ -78,7 +78,7 @@ export const queryKeys = {
     all: ["api", "locations"] as const,
     tree: () => ["api", "locations", "tree"] as const,
     states: () => ["api", "locations", "states"] as const,
-    regions: (stateId: string) => ["api", "locations", "regions", stateId] as const,
-    ways: (regionId: string) => ["api", "locations", "ways", regionId] as const,
+    ways: (stateId: string) => ["api", "locations", "ways", stateId] as const,
+    branches: (wayId: string) => ["api", "locations", "branches", wayId] as const,
   },
 };

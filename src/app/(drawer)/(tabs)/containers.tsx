@@ -4,6 +4,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useGlobalStyles } from "@/styles/global";
+import { localizedName } from "@/utils/localizedName";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
@@ -12,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { Alert, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 
 export default function ContainersScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { plate, gs } = useGlobalStyles();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -40,9 +41,9 @@ export default function ContainersScreen() {
         <Ionicons name="layers" size={20} color={plate.green} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={gs.label}>{item.name}</Text>
+        <Text style={gs.label}>{localizedName(item, i18n.language)}</Text>
         <Text style={gs.caption}>
-          {item.brand?.name ?? t("container.noBrand")} | {t("container.productsCount", { count: item.products?.length ?? 0 })}
+          {localizedName(item.brand, i18n.language) || t("container.noBrand")} | {t("container.productsCount", { count: item.products?.length ?? 0 })}
         </Text>
       </View>
       <View style={[gs.containerRow, { gap: 4 }]}>

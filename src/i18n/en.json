@@ -13,7 +13,10 @@
     "deleted": "Deleted",
     "uploadError": "Upload Error",
     "permissionRequired": "Permission required",
-    "select": "Select..."
+    "select": "Select...",
+    "required": "Required fields missing",
+    "add": "Add",
+    "confirmDelete": "Delete this item?"
   },
   "drawer": {
     "admin": "Admin",
@@ -29,6 +32,7 @@
     "users": "Users",
     "offers": "Offers",
     "chargeRequests": "Charge Requests",
+    "locations": "Locations",
     "settings": "Settings"
   },
   "auth": {
@@ -87,7 +91,10 @@
     "confirmUpdateTitle": "Update Order Status",
     "confirmUpdateMessage": "Change order status?",
     "confirmChangeMessage": "Change order to \"{status}\"?",
-    "confirmUpdateButton": "Update"
+    "confirmUpdateButton": "Update",
+    "stockWarningTitle": "Insufficient Stock",
+    "stockWarningDetail": "ordered {qty}, available {stock}",
+    "continueAnyway": "Continue Anyway"
   },
   "product": {
     "listTitle": "Products",
@@ -341,7 +348,61 @@
     "saveButton": "Save Offer",
     "created": "Offer created",
     "updated": "Offer updated",
-    "validationRequired": "All fields are required"
+    "validationRequired": "All fields are required",
+    "containerStepTitle": "Container",
+    "productStepTitle": "Products",
+    "offerStepTitle": "Offer Details",
+    "nextStep": "Next",
+    "prevStep": "Previous",
+    "addProduct": "Add Product",
+    "productLabel": "Product",
+    "validationContainerRequired": "All container fields are required",
+    "validationProductRequired": "Product #{index} is missing required fields"
+  },
+
+  "ads": {
+    "listTitle": "Ad Requests",
+    "emptyList": "No ad requests",
+    "statusPending": "Pending",
+    "statusApproved": "Approved",
+    "statusRejected": "Rejected",
+    "filterAll": "All",
+    "filterPending": "Pending",
+    "filterApproved": "Approved",
+    "filterRejected": "Rejected",
+    "products": "products",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectionReason": "Reason",
+    "rejectTitle": "Rejection Reason",
+    "rejectPlaceholder": "Enter the reason for rejection..."
+  },
+
+  "update": {
+    "title": "Update Available",
+    "description": "A new version of the app is available. Please download the latest version and reinstall.",
+    "currentVersion": "Current Version",
+    "newVersion": "New Version",
+    "instructions": "After downloading, please uninstall the old app first, then install the new APK file.",
+    "downloadButton": "Download Latest Version"
+  },
+
+  "locations": {
+    "states": "States",
+    "directDelivery": "Direct Delivery",
+    "addState": "Add State",
+    "editState": "Edit State",
+    "emptyStates": "No states yet",
+    "waysOf": "Ways - {name}",
+    "addWay": "Add Way",
+    "editWay": "Edit Way",
+    "emptyWays": "No ways yet",
+    "branchesOf": "Branches - {name}",
+    "addBranch": "Add Branch",
+    "editBranch": "Edit Branch",
+    "emptyBranches": "No branches yet",
+    "nameEn": "Name (English)",
+    "nameAr": "Name (Arabic)"
   },
 
   "language": {

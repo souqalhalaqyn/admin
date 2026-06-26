@@ -62,11 +62,17 @@
       "url": "https://u.expo.dev/14760687-3f8f-4af1-ab7c-c8b689bc16b6",
       "enabled": true,
       "fallbackToCacheTimeout": 0,
-      "checkAutomatically": "ON_LOAD"
+      "checkOnLaunch": "ALWAYS"
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "owner": "souqalhalaqeen-organaization"
+    "owner": "souqalhalaqeen-organaization",
+    "developmentClient": {
+      "silentLaunch": false,
+      "android": {
+        "package": "com.rawadag.barbersadmin.debug"
+      }
+    }
   }
 }

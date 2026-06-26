@@ -9,8 +9,12 @@ export default function StackLayout() {
       <Stack.Screen name="containers" />
       <Stack.Screen name="brands" />
       <Stack.Screen name="categories" />
+      <Stack.Screen name="locations" />
+      <Stack.Screen name="location-ways" />
+      <Stack.Screen name="location-branches" />
       <Stack.Screen name="users" />
       <Stack.Screen name="offers" />
+      <Stack.Screen name="ads" />
       <Stack.Screen name="charge-requests" />
       <Stack.Screen name="order-detail" />
       <Stack.Screen name="product-form" />

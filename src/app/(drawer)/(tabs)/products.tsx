@@ -5,6 +5,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useGlobalStyles } from "@/styles/global";
 import { buildImageUrl } from "@/utils/imageUrl";
+import { localizedName } from "@/utils/localizedName";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
@@ -14,7 +15,7 @@ import { Alert, FlatList, Image, RefreshControl, Text, TouchableOpacity, View } 
 
 export default function ProductsScreen() {
   const { plate, gs } = useGlobalStyles();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data, refetch, isLoading } = useApiQuery<any>({
@@ -42,7 +43,7 @@ export default function ProductsScreen() {
         style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: plate.gray, marginRight: 12 }}
       />
       <View style={{ flex: 1 }}>
-        <Text style={gs.label} numberOfLines={1}>{item.name}</Text>
+        <Text style={gs.label} numberOfLines={1}>{localizedName(item, i18n.language)}</Text>
         <Text style={[gs.caption]}>
           ${item.price?.toLocaleString()} | {t("product.stockLabel", { stock: item.stock ?? 0 })}
         </Text>
