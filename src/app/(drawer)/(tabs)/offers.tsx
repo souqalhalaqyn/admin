@@ -1,4 +1,4 @@
-import { getApiClient, queryKeys, useApiQuery } from "@/api";
+import { getApiClient, useApiQuery } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
@@ -83,7 +83,7 @@ export default function OffersScreen() {
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
         ListEmptyComponent={<EmptyState icon="pricetag-outline" title={t("offer.emptyList")} />}
         renderItem={({ item }) => {
-          const profitPerUnit = item.unitSellPrice - (item.unitSellPrice * item.commissionPercent / 100);
+
           return (
             <TouchableOpacity
               style={[gs.card, { padding: 16, marginBottom: 12 }]}

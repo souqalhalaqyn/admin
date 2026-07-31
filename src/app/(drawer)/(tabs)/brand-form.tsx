@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function BrandFormScreen() {
@@ -15,6 +16,7 @@ export default function BrandFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
   const isEditing = !!id;
+  const queryClient = useQueryClient();
 
   const [nameEn, setNameEn] = useState("");
   const [nameAr, setNameAr] = useState("");
@@ -46,7 +48,7 @@ export default function BrandFormScreen() {
     method: "post",
     url: "brands",
     options: {
-      onSuccess: () => { Alert.alert(t("common.success"), t("brandForm.created")); router.back(); },
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.brands.all }); Alert.alert(t("common.success"), t("brandForm.created")); router.back(); },
       onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
@@ -55,15 +57,13 @@ export default function BrandFormScreen() {
     method: "put",
     url: `brands/${id}`,
     options: {
-      onSuccess: () => { Alert.alert(t("common.success"), t("brandForm.updated")); router.back(); },
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.brands.all }); Alert.alert(t("common.success"), t("brandForm.updated")); router.back(); },
       onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!nameEn.trim()) e.nameEn = t("brandForm.validationNameEnRequired");
-    else if (nameEn.trim().length < 2) e.nameEn = t("brandForm.validationNameEnMinLength");
     if (!nameAr.trim()) e.nameAr = t("brandForm.validationNameArRequired");
     setErrors(e);
     return Object.keys(e).length === 0;

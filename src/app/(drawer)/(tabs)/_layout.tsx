@@ -13,6 +13,7 @@ export default function StackLayout() {
       <Stack.Screen name="location-ways" />
       <Stack.Screen name="location-branches" />
       <Stack.Screen name="users" />
+      <Stack.Screen name="notifications" />
       <Stack.Screen name="offers" />
       <Stack.Screen name="ads" />
       <Stack.Screen name="charge-requests" />
@@ -22,6 +23,7 @@ export default function StackLayout() {
       <Stack.Screen name="brand-form" />
       <Stack.Screen name="category-form" />
       <Stack.Screen name="offer-form" />
+      <Stack.Screen name="reviews" />
       <Stack.Screen name="user-detail" />
     </Stack>
   );

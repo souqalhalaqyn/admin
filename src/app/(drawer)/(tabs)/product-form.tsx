@@ -1,17 +1,21 @@
 import { getApiClient, useApiMutation, useApiQuery, queryKeys } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
+import { uploadFiles } from "@/utils/uploadFile";
 import FormField from "@/components/FormField";
+import HSLColorPicker from "@/components/HSLColorPicker";
 import ImageField from "@/components/ImageField";
 import LoadingScreen from "@/components/LoadingScreen";
 import PickerSelect from "@/components/PickerSelect";
 import SectionHeader from "@/components/SectionHeader";
+import UploadProgressModal from "@/components/UploadProgressModal";
 import { useGlobalStyles } from "@/styles/global";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function ProductFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,22 +25,65 @@ export default function ProductFormScreen() {
 
   const [nameEn, setNameEn] = useState("");
   const [nameAr, setNameAr] = useState("");
-  const [shortDescriptionEn, setShortDescriptionEn] = useState("");
-  const [shortDescriptionAr, setShortDescriptionAr] = useState("");
-  const [longDescriptionEn, setLongDescriptionEn] = useState("");
-  const [longDescriptionAr, setLongDescriptionAr] = useState("");
+  const [descriptionEn, setDescriptionEn] = useState("");
+  const [descriptionAr, setDescriptionAr] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("0");
   const [containerId, setContainerId] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [tagsEn, setTagsEn] = useState("");
   const [tagsAr, setTagsAr] = useState("");
   const [aliasesEn, setAliasesEn] = useState("");
   const [aliasesAr, setAliasesAr] = useState("");
+  const [colors, setColors] = useState("");
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const [notesEn, setNotesEn] = useState("");
   const [notesAr, setNotesAr] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const abortRef = useRef<(() => void) | null>(null);
+  const pendingFormDataRef = useRef<FormData | null>(null);
+
+  const runUpload = useCallback(async (formData: FormData) => {
+    setUploadProgress(0);
+    setUploadError(null);
+    setUploading(true);
+    pendingFormDataRef.current = formData;
+    try {
+      const { filenames, abort } = await uploadFiles(formData, setUploadProgress);
+      abortRef.current = abort;
+      setImages((prev) => [...prev, ...filenames]);
+      setUploading(false);
+      setUploadProgress(0);
+      abortRef.current = null;
+      pendingFormDataRef.current = null;
+    } catch (err: any) {
+      setUploadError(err?.message ?? t("common.uploadError"));
+    }
+  }, [t]);
+
+  const retryUpload = useCallback(() => {
+    if (pendingFormDataRef.current) {
+      runUpload(pendingFormDataRef.current);
+    }
+  }, [runUpload]);
+
+  const cancelUpload = useCallback(() => {
+    abortRef.current?.();
+    setUploading(false);
+    setUploadProgress(0);
+    setUploadError(null);
+    abortRef.current = null;
+    pendingFormDataRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    return () => abortRef.current?.();
+  }, []);
 
   const handleAddImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -50,25 +97,39 @@ export default function ProductFormScreen() {
     });
     if (result.canceled || !result.assets?.[0]) return;
 
-    try {
-      const localUri = result.assets[0].uri;
-      const filename = localUri.split("/").pop() || "image.jpg";
-      const formData = new FormData();
-      formData.append("images", {
-        uri: localUri,
-        name: filename,
-        type: "image/jpeg",
-      } as any);
+    const localUri = result.assets[0].uri;
+    const filename = localUri.split("/").pop() || "image.jpg";
+    const formData = new FormData();
+    formData.append("images", {
+      uri: localUri,
+      name: filename,
+      type: "image/jpeg",
+    } as any);
 
-      const client = getApiClient();
-      const response = await client.post("/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      const filenames: string[] = response.data?.data ?? [];
-      setImages((prev) => [...prev, ...filenames]);
-    } catch (err) {
-      Alert.alert(t("common.uploadError"), getErrorMessage(err));
+    runUpload(formData);
+  };
+
+  const handleAddVideo = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t("common.permissionRequired"), t("productForm.permissionMessage"));
+      return;
     }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["videos"],
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const localUri = result.assets[0].uri;
+    const filename = localUri.split("/").pop() || "video.mp4";
+    const formData = new FormData();
+    formData.append("images", {
+      uri: localUri,
+      name: filename,
+      type: "video/mp4",
+    } as any);
+
+    runUpload(formData);
   };
 
   const { data, isLoading: loadingData } = useApiQuery<any>({
@@ -91,10 +152,8 @@ export default function ProductFormScreen() {
       const p = data.data;
       setNameEn(p.nameEn ?? p.name ?? "");
       setNameAr(p.nameAr ?? "");
-      setShortDescriptionEn(p.shortDescriptionEn ?? p.shortDescription ?? "");
-      setShortDescriptionAr(p.shortDescriptionAr ?? "");
-      setLongDescriptionEn(p.longDescriptionEn ?? p.longDescription ?? "");
-      setLongDescriptionAr(p.longDescriptionAr ?? "");
+      setDescriptionEn(p.descriptionEn ?? p.description ?? "");
+      setDescriptionAr(p.descriptionAr ?? "");
       setPrice(String(p.price ?? ""));
       setStock(String(p.stock ?? "0"));
       setContainerId(p.container?._id ?? p.container ?? "");
@@ -103,16 +162,28 @@ export default function ProductFormScreen() {
       setTagsAr((p.tagsAr ?? []).join(", "));
       setAliasesEn((p.aliasesEn ?? p.aliases ?? []).join(", "));
       setAliasesAr((p.aliasesAr ?? []).join(", "));
-      setNotesEn((p.notesEn ?? p.notes ?? []).join("\n"));
-      setNotesAr((p.notesAr ?? []).join("\n"));
+      const rawNotesEn = p.notesEn ?? p.notes ?? [];
+      const rawNotesAr = p.notesAr ?? [];
+      const colorsEntry = rawNotesEn.find((n: string) => n.startsWith("colors:"));
+      if (colorsEntry) {
+        setColors(colorsEntry.replace("colors:", "").split(",").join(" "));
+      }
+      setNotesEn(rawNotesEn.filter((n: string) => !n.startsWith("colors:")).join("\n"));
+      setNotesAr(rawNotesAr.filter((n: string) => !n.startsWith("colors:")).join("\n"));
       setIsActive(p.isActive ?? true);
     }
   }, [data]);
 
+  const queryClient = useQueryClient();
+
   const createMutation = useApiMutation<any, any>({
     method: "post", url: "products",
     options: {
-      onSuccess: () => { Alert.alert(t("common.success"), t("productForm.created")); router.back(); },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+        Alert.alert(t("common.success"), t("productForm.created"));
+        router.back();
+      },
       onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
@@ -120,17 +191,20 @@ export default function ProductFormScreen() {
   const updateMutation = useApiMutation<any, any>({
     method: "put", url: `products/${id}`,
     options: {
-      onSuccess: () => { Alert.alert(t("common.success"), t("productForm.updated")); router.back(); },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id!) });
+        Alert.alert(t("common.success"), t("productForm.updated"));
+        router.back();
+      },
       onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!nameEn.trim()) e.nameEn = t("productForm.validationNameEnRequired");
     if (!nameAr.trim()) e.nameAr = t("productForm.validationNameArRequired");
-    if (!shortDescriptionEn.trim()) e.shortDescriptionEn = t("productForm.validationShortDescEnRequired");
-    if (!shortDescriptionAr.trim()) e.shortDescriptionAr = t("productForm.validationShortDescArRequired");
+    if (!descriptionAr.trim()) e.descriptionAr = t("productForm.validationDescArRequired");
     if (!price || isNaN(Number(price)) || Number(price) <= 0) e.price = t("productForm.validationPriceRequired");
     if (!containerId) e.containerId = t("productForm.validationContainerRequired");
     setErrors(e);
@@ -138,14 +212,16 @@ export default function ProductFormScreen() {
   };
 
   const handleSubmit = () => {
+    if (uploading) {
+      Alert.alert("", t("productForm.uploadInProgress") || "Please wait, images are still uploading");
+      return;
+    }
     if (!validate()) return;
     const payload = {
       nameEn: nameEn.trim(),
       nameAr: nameAr.trim(),
-      shortDescriptionEn: shortDescriptionEn.trim(),
-      shortDescriptionAr: shortDescriptionAr.trim(),
-      longDescriptionEn: longDescriptionEn.trim(),
-      longDescriptionAr: longDescriptionAr.trim(),
+      descriptionEn: descriptionEn.trim(),
+      descriptionAr: descriptionAr.trim(),
       price: Number(price),
       stock: Number(stock) || 0,
       container: containerId,
@@ -154,8 +230,24 @@ export default function ProductFormScreen() {
       tagsAr: tagsAr.split(",").map((t) => t.trim()).filter(Boolean),
       aliasesEn: aliasesEn.split(",").map((a) => a.trim()).filter(Boolean),
       aliasesAr: aliasesAr.split(",").map((a) => a.trim()).filter(Boolean),
-      notesEn: notesEn.split("\n").map((n) => n.trim()).filter(Boolean),
-      notesAr: notesAr.split("\n").map((n) => n.trim()).filter(Boolean),
+      notesEn: (() => {
+        const parsed = notesEn.split("\n").map((n) => n.trim()).filter(Boolean);
+        const colorsTrimmed = colors.trim();
+        if (colorsTrimmed) {
+          const hexList = colorsTrimmed.split(/\s+/).filter((h) => /^#[0-9a-fA-F]{6}$/.test(h));
+          if (hexList.length > 0) parsed.push("colors:" + hexList.join(","));
+        }
+        return parsed;
+      })(),
+      notesAr: (() => {
+        const parsed = notesAr.split("\n").map((n) => n.trim()).filter(Boolean);
+        const colorsTrimmed = colors.trim();
+        if (colorsTrimmed) {
+          const hexList = colorsTrimmed.split(/\s+/).filter((h) => /^#[0-9a-fA-F]{6}$/.test(h));
+          if (hexList.length > 0) parsed.push("colors:" + hexList.join(","));
+        }
+        return parsed;
+      })(),
       isActive,
     };
     if (isEditing) updateMutation.mutate(payload);
@@ -166,7 +258,7 @@ export default function ProductFormScreen() {
   if (isEditing && loadingData) return <LoadingScreen />;
 
   return (
-    <KeyboardAvoidingView style={gs.safeArea} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={gs.safeArea} behavior="padding">
       <View style={[gs.containerRow, { padding: 16, backgroundColor: plate.backgroundSecond, borderBottomWidth: 1, borderBottomColor: plate.gray }]}>
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
           <Ionicons name="arrow-back" size={24} color={plate.text} />
@@ -196,42 +288,25 @@ export default function ProductFormScreen() {
         />
 
         <FormField
-          label={t("productForm.shortDescEn")}
-          value={shortDescriptionEn}
-          onChangeText={setShortDescriptionEn}
-          placeholder={t("productForm.shortDescEnPlaceholder")}
-          required
-          maxLength={150}
-          error={errors.shortDescriptionEn}
-        />
-
-        <FormField
-          label={t("productForm.shortDescAr")}
-          value={shortDescriptionAr}
-          onChangeText={setShortDescriptionAr}
-          placeholder={t("productForm.shortDescArPlaceholder")}
-          required
-          error={errors.shortDescriptionAr}
-        />
-
-        <FormField
-          label={t("productForm.longDescEn")}
-          value={longDescriptionEn}
-          onChangeText={setLongDescriptionEn}
-          placeholder={t("productForm.longDescEnPlaceholder")}
+          label={t("productForm.descEn")}
+          value={descriptionEn}
+          onChangeText={setDescriptionEn}
+          placeholder={t("productForm.descEnPlaceholder")}
           multiline
           numberOfLines={4}
           style={{ minHeight: 80, textAlignVertical: "top", paddingTop: 12 }}
         />
 
         <FormField
-          label={t("productForm.longDescAr")}
-          value={longDescriptionAr}
-          onChangeText={setLongDescriptionAr}
-          placeholder={t("productForm.longDescArPlaceholder")}
+          label={t("productForm.descAr")}
+          value={descriptionAr}
+          onChangeText={setDescriptionAr}
+          placeholder={t("productForm.descArPlaceholder")}
+          required
           multiline
           numberOfLines={4}
           style={{ minHeight: 80, textAlignVertical: "top", paddingTop: 12 }}
+          error={errors.descriptionAr}
         />
 
         <View style={{ flexDirection: "row", gap: 12 }}>
@@ -274,6 +349,7 @@ export default function ProductFormScreen() {
           images={images}
           label={t("productForm.images")}
           onAdd={handleAddImage}
+          onAddVideo={handleAddVideo}
           onRemove={(i) => setImages(images.filter((_, idx) => idx !== i))}
         />
 
@@ -332,6 +408,56 @@ export default function ProductFormScreen() {
           style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }}
         />
 
+        <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+          <View style={{ flex: 1 }}>
+            <FormField
+              label={t("productForm.colors")}
+              value={colors}
+              onChangeText={setColors}
+              placeholder={t("productForm.colorsPlaceholder")}
+              autoCapitalize="none"
+            />
+          </View>
+          <TouchableOpacity
+            onPress={() => setShowColorPicker(true)}
+            style={{
+              width: 36, height: 36, borderRadius: 18,
+              backgroundColor: plate.primary, justifyContent: "center", alignItems: "center",
+              marginTop: 28, marginLeft: 8,
+            }}
+          >
+            <Ionicons name="color-palette-outline" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        {colors.trim() ? (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+            {colors.trim().split(/\s+/).map((hex, i) => {
+              const valid = /^#[0-9a-fA-F]{6}$/.test(hex);
+              return (
+                <View
+                  key={i}
+                  style={{
+                    width: 28, height: 28, borderRadius: 14,
+                    backgroundColor: valid ? hex : plate.gray,
+                    borderWidth: 1, borderColor: plate.graySecond,
+                  }}
+                />
+              );
+            })}
+          </View>
+        ) : null}
+
+        <HSLColorPicker
+          visible={showColorPicker}
+          onClose={() => setShowColorPicker(false)}
+          onColor={(hex) => {
+            const existing = colors.trim().split(/\s+/).filter(Boolean);
+            if (!existing.includes(hex)) {
+              setColors((existing.length > 0 ? existing.join(" ") + " " : "") + hex);
+            }
+          }}
+        />
+
         <TouchableOpacity
           style={[gs.containerRow, { marginBottom: 24 }]}
           onPress={() => setIsActive(!isActive)}
@@ -353,6 +479,15 @@ export default function ProductFormScreen() {
           <Text style={gs.buttonText}>{isLoading ? t("productForm.savingButton") : t("productForm.saveButton")}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <UploadProgressModal
+        visible={uploading || !!uploadError}
+        progress={uploadProgress}
+        error={uploadError}
+        onRetry={retryUpload}
+        onCancel={cancelUpload}
+        onDismiss={() => { setUploadError(null); setUploading(false); setUploadProgress(0); abortRef.current = null; pendingFormDataRef.current = null; }}
+      />
     </KeyboardAvoidingView>
   );
 }

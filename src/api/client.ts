@@ -6,7 +6,7 @@ import type { ApiConfig } from "./types";
 
 let apiInstance: AxiosInstance | null = null;
 let configCache: ApiConfig = {
-  baseURL: (process.env.EXPO_PUBLIC_API_URL as string) ?? `${SERVER_URL}/api/v1/`,
+  baseURL: process.env.EXPO_PUBLIC_API_URL ?? `${SERVER_URL}/api/v1/`,
   timeout: 15000,
 };
 
@@ -58,7 +58,6 @@ function createApiClient(config?: Partial<ApiConfig>): AxiosInstance {
     baseURL: configCache.baseURL,
     timeout: configCache.timeout,
     headers: {
-      "Content-Type": "application/json",
       Accept: "application/json",
     },
   };
@@ -123,7 +122,10 @@ function createApiClient(config?: Partial<ApiConfig>): AxiosInstance {
           return instance(originalRequest);
         } catch (refreshError) {
           processQueue(refreshError, null);
-          if (configCache.onUnauthorized) configCache.onUnauthorized();
+          // Only logout on actual auth rejection (401), not on network errors
+          if ((refreshError as AxiosError)?.response?.status === 401 && configCache.onUnauthorized) {
+            configCache.onUnauthorized();
+          }
           return Promise.reject(refreshError);
         } finally {
           isRefreshing = false;

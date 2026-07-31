@@ -9,6 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function ContainerFormScreen() {
@@ -16,13 +17,12 @@ export default function ContainerFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
   const isEditing = !!id;
+  const queryClient = useQueryClient();
 
   const [nameEn, setNameEn] = useState("");
   const [nameAr, setNameAr] = useState("");
-  const [shortDescriptionEn, setShortDescriptionEn] = useState("");
-  const [shortDescriptionAr, setShortDescriptionAr] = useState("");
-  const [longDescriptionEn, setLongDescriptionEn] = useState("");
-  const [longDescriptionAr, setLongDescriptionAr] = useState("");
+  const [descriptionEn, setDescriptionEn] = useState("");
+  const [descriptionAr, setDescriptionAr] = useState("");
   const [brandId, setBrandId] = useState("");
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
@@ -49,10 +49,8 @@ export default function ContainerFormScreen() {
       const c = data.data;
       setNameEn(c.nameEn ?? c.name ?? "");
       setNameAr(c.nameAr ?? "");
-      setShortDescriptionEn(c.shortDescriptionEn ?? c.shortDescription ?? "");
-      setShortDescriptionAr(c.shortDescriptionAr ?? "");
-      setLongDescriptionEn(c.longDescriptionEn ?? c.longDescription ?? "");
-      setLongDescriptionAr(c.longDescriptionAr ?? "");
+      setDescriptionEn(c.descriptionEn ?? c.description ?? "");
+      setDescriptionAr(c.descriptionAr ?? "");
       setBrandId(c.brand?._id ?? c.brand ?? "");
       setCategoryIds((c.categories ?? []).map((cat: any) => cat._id ?? cat));
       setIsActive(c.isActive ?? true);
@@ -62,7 +60,7 @@ export default function ContainerFormScreen() {
   const createMutation = useApiMutation<any, any>({
     method: "post", url: "containers",
     options: {
-      onSuccess: () => { Alert.alert(t("common.success"), t("containerForm.created")); router.back(); },
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.containers.all }); Alert.alert(t("common.success"), t("containerForm.created")); router.back(); },
       onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
@@ -70,7 +68,7 @@ export default function ContainerFormScreen() {
   const updateMutation = useApiMutation<any, any>({
     method: "put", url: `containers/${id}`,
     options: {
-      onSuccess: () => { Alert.alert(t("common.success"), t("containerForm.updated")); router.back(); },
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.containers.all }); Alert.alert(t("common.success"), t("containerForm.updated")); router.back(); },
       onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
@@ -83,7 +81,6 @@ export default function ContainerFormScreen() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!nameEn.trim()) e.nameEn = t("containerForm.validationNameEnRequired");
     if (!nameAr.trim()) e.nameAr = t("containerForm.validationNameArRequired");
     if (!brandId) e.brandId = t("containerForm.validationBrandRequired");
     setErrors(e);
@@ -96,10 +93,8 @@ export default function ContainerFormScreen() {
     const payload = {
       nameEn: nameEn.trim(),
       nameAr: nameAr.trim(),
-      shortDescriptionEn: shortDescriptionEn.trim(),
-      shortDescriptionAr: shortDescriptionAr.trim(),
-      longDescriptionEn: longDescriptionEn.trim(),
-      longDescriptionAr: longDescriptionAr.trim(),
+      descriptionEn: descriptionEn.trim(),
+      descriptionAr: descriptionAr.trim(),
       brand: brandId,
       categories: categoryIds,
       isActive,
@@ -126,16 +121,14 @@ export default function ContainerFormScreen() {
 
         <FormField label={t("containerForm.nameEn")} value={nameEn} onChangeText={setNameEn} placeholder={t("containerForm.nameEnPlaceholder")} required error={errors.nameEn} />
         <FormField label={t("containerForm.nameAr")} value={nameAr} onChangeText={setNameAr} placeholder={t("containerForm.nameArPlaceholder")} required error={errors.nameAr} />
-        <FormField label={t("containerForm.shortDescEn")} value={shortDescriptionEn} onChangeText={setShortDescriptionEn} placeholder={t("containerForm.shortDescEnPlaceholder")} />
-        <FormField label={t("containerForm.shortDescAr")} value={shortDescriptionAr} onChangeText={setShortDescriptionAr} placeholder={t("containerForm.shortDescArPlaceholder")} />
         <FormField
-          label={t("containerForm.longDescEn")} value={longDescriptionEn} onChangeText={setLongDescriptionEn}
-          placeholder={t("containerForm.longDescEnPlaceholder")} multiline numberOfLines={3}
+          label={t("containerForm.descEn")} value={descriptionEn} onChangeText={setDescriptionEn}
+          placeholder={t("containerForm.descEnPlaceholder")} multiline numberOfLines={3}
           style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }}
         />
         <FormField
-          label={t("containerForm.longDescAr")} value={longDescriptionAr} onChangeText={setLongDescriptionAr}
-          placeholder={t("containerForm.longDescArPlaceholder")} multiline numberOfLines={3}
+          label={t("containerForm.descAr")} value={descriptionAr} onChangeText={setDescriptionAr}
+          placeholder={t("containerForm.descArPlaceholder")} multiline numberOfLines={3}
           style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }}
         />
 

@@ -4,24 +4,25 @@
     "slug": "barbers-admin",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/1024x1024.png",
     "scheme": "barbersadmin",
     "userInterfaceStyle": "automatic",
-    "ios": {},
+    "ios": {
+      "bundleIdentifier": "com.rawadag.barbersadmin"
+    },
     "splash": {
-      "image": "./assets/logo.png",
+      "image": "./assets/300x300.png",
       "resizeMode": "contain",
       "backgroundColor": "#121212"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#121212",
-        "foregroundImage": "./assets/logo.png",
-        "backgroundImage": "./assets/logo.png",
-        "monochromeImage": "./assets/logo.png"
+        "foregroundImage": "./assets/1024x1024.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.rawadag.barbersadmin"
+      "package": "com.rawadag.barbersadmin",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {},
     "plugins": [
@@ -30,9 +31,9 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#121212",
-          "image": "./assets/logo.png",
+          "image": "./assets/300x300.png",
           "android": {
-            "image": "./assets/logo.png",
+            "image": "./assets/300x300.png",
             "imageWidth": 300
           }
         }
@@ -40,13 +41,22 @@
       "expo-localization",
       "expo-image",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/1024x1024.png",
+          "color": "#121212",
+          "sounds": []
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      ["./plugins/withLocalizedAppLabel.js", { "ar": "ادمن سوق الحلاقين" }]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -64,9 +74,7 @@
       "fallbackToCacheTimeout": 0,
       "checkOnLaunch": "ALWAYS"
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "owner": "souqalhalaqeen-organaization",
     "developmentClient": {
       "silentLaunch": false,

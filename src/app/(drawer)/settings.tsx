@@ -1,18 +1,25 @@
 import { getApiClient, useApiMutation, useApiQuery, queryKeys } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import FormField from "@/components/FormField";
-import ImageField from "@/components/ImageField";
 import LoadingScreen from "@/components/LoadingScreen";
 import SectionHeader from "@/components/SectionHeader";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { changeLanguage, type LanguageCode } from "@/i18n";
 import { useGlobalStyles } from "@/styles/global";
+import { buildImageUrl } from "@/utils/imageUrl";
+import { uploadFiles } from "@/utils/uploadFile";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+
+interface SliderEntry {
+  image: string;
+  productId?: string;
+  productName?: string;
+}
 
 export default function SettingsScreen() {
   const { plate, gs } = useGlobalStyles();
@@ -21,8 +28,12 @@ export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
 
   const [sypRate, setSypRate] = useState("");
-  const [sliderImages, setSliderImages] = useState<string[]>([]);
+  const [adPrice, setAdPrice] = useState("");
+  const [sliderEntries, setSliderEntries] = useState<SliderEntry[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [pickerIndex, setPickerIndex] = useState<number | null>(null);
+  const [productSearch, setProductSearch] = useState("");
+  const [productResults, setProductResults] = useState<any[]>([]);
 
   const { data, refetch, isLoading } = useApiQuery<any>({
     url: "admin/settings",
@@ -32,7 +43,11 @@ export default function SettingsScreen() {
   useEffect(() => {
     if (data?.data) {
       setSypRate(String(data.data.sypExchangeRate ?? "15000"));
-      setSliderImages(data.data.sliderImages ?? []);
+      setAdPrice(String(data.data.adPrice ?? "0"));
+      const entries: SliderEntry[] = (data.data.sliderImages ?? []).map((s: any) =>
+        typeof s === "string" ? { image: s } : s,
+      );
+      setSliderEntries(entries);
     }
   }, [data]);
 
@@ -48,12 +63,59 @@ export default function SettingsScreen() {
   const handleSave = () => {
     updateSettingsMutation.mutate({
       sypExchangeRate: Number(sypRate) || 15000,
-      sliderImages,
+      adPrice: Number(adPrice) || 0,
+      sliderImages: sliderEntries,
     });
   };
 
   const handleLanguageChange = async (lang: LanguageCode) => {
     await changeLanguage(lang);
+  };
+
+  const doProductSearch = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setProductResults([]);
+      return;
+    }
+    try {
+      const client = getApiClient();
+      const res = await client.get("products", { params: { q: query.trim(), limit: 8 } });
+      setProductResults(res.data?.data ?? []);
+    } catch {
+      setProductResults([]);
+    }
+  }, []);
+
+  const openProductPicker = (index: number) => {
+    setPickerIndex(index);
+    setProductSearch("");
+    setProductResults([]);
+  };
+
+  const selectProduct = (product: any) => {
+    if (pickerIndex === null) return;
+    const name = product.nameEn ?? product.nameAr ?? "";
+    const idx = pickerIndex;
+    setSliderEntries((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], productId: product._id, productName: name };
+      return next;
+    });
+    closeProductPicker();
+  };
+
+  const clearProduct = (index: number) => {
+    setSliderEntries((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], productId: undefined, productName: undefined };
+      return next;
+    });
+  };
+
+  const closeProductPicker = () => {
+    setPickerIndex(null);
+    setProductSearch("");
+    setProductResults([]);
   };
 
   if (isLoading) return <LoadingScreen />;
@@ -67,7 +129,8 @@ export default function SettingsScreen() {
   const currentLang: LanguageCode = i18n.language === "ar" ? "ar" : "en";
 
   return (
-    <ScrollView style={gs.safeArea} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={gs.safeArea} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
       <Text style={[gs.h2, { marginTop: 16, marginBottom: 24 }]}>{t("settings.title")}</Text>
 
       <View style={[gs.card, { padding: 16 }]}>
@@ -127,11 +190,47 @@ export default function SettingsScreen() {
       </View>
 
       <View style={[gs.card, { padding: 16 }]}>
-        <SectionHeader title={t("settings.sliderImages")} />
-        <ImageField
-          images={sliderImages}
-          label={t("settings.sliderImagesLabel")}
-          onAdd={async () => {
+        <FormField
+          label={t("settings.adPriceLabel")}
+          value={adPrice}
+          onChangeText={setAdPrice}
+          placeholder="0"
+          keyboardType="number-pad"
+        />
+      </View>
+
+      <View style={[gs.card, { padding: 16 }]}>
+        <SectionHeader title={t("settings.sliderImages")} subtitle={t("settings.productIdOptional")} />
+        {sliderEntries.map((entry, i) => (
+          <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
+            <Image source={{ uri: buildImageUrl(entry.image) }} style={{ width: 60, height: 60, borderRadius: 8, backgroundColor: plate.gray }} />
+            <View style={{ flex: 1 }}>
+              <TouchableOpacity
+                style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: plate.gray, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10, minHeight: 38 }}
+                onPress={() => openProductPicker(i)}
+              >
+                <Text style={[gs.text, { flex: 1, fontSize: 14, color: entry.productName ? plate.text : plate.textSecond }]} numberOfLines={1}>
+                  {entry.productName || t("settings.productIdPlaceholder")}
+                </Text>
+                <Ionicons name="search" size={18} color={plate.textSecond} />
+              </TouchableOpacity>
+              {entry.productId ? (
+                <TouchableOpacity
+                  style={{ position: "absolute", right: 4, top: 4 }}
+                  onPress={() => clearProduct(i)}
+                >
+                  <Ionicons name="close-circle" size={18} color={plate.red} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <TouchableOpacity onPress={() => setSliderEntries(sliderEntries.filter((_, idx) => idx !== i))}>
+              <Ionicons name="trash-outline" size={20} color={plate.red} />
+            </TouchableOpacity>
+          </View>
+        ))}
+        <TouchableOpacity
+          style={[gs.buttonOutline, { marginTop: 8 }]}
+          onPress={async () => {
             const result = await ImagePicker.launchImageLibraryAsync({
               mediaTypes: ["images"],
               quality: 0.8,
@@ -147,14 +246,9 @@ export default function SettingsScreen() {
                 name: "slider.jpg",
               } as any);
 
-              const client = getApiClient();
-              const uploadResp = await client.post("upload", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-              });
-              const filenames: string[] = uploadResp.data?.data ?? [];
-              const filename = filenames[0];
-              if (filename) {
-                setSliderImages([...sliderImages, filename]);
+              const filenames = await uploadFiles(formData);
+              if (filenames[0]) {
+                setSliderEntries([...sliderEntries, { image: filenames[0] }]);
               }
             } catch (err) {
               Alert.alert(t("common.error"), getErrorMessage(err));
@@ -162,8 +256,10 @@ export default function SettingsScreen() {
               setUploadingImage(false);
             }
           }}
-          onRemove={(i) => setSliderImages(sliderImages.filter((_, idx) => idx !== i))}
-        />
+        >
+          <Ionicons name="add" size={18} color={plate.primary} />
+          <Text style={[gs.buttonTextSecondary, { marginLeft: 4 }]}>{t("settings.addSliderImage")}</Text>
+        </TouchableOpacity>
         {uploadingImage ? (
           <ActivityIndicator size="small" color={plate.primary} style={{ marginTop: 8 }} />
         ) : null}
@@ -187,6 +283,59 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+
+      <Modal visible={pickerIndex !== null} transparent animationType="fade" onRequestClose={closeProductPicker}>
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          activeOpacity={1}
+          onPress={closeProductPicker}
+        >
+          <View style={{ flex: 1, justifyContent: "flex-start", paddingTop: 120, backgroundColor: "rgba(0,0,0,0.3)" }}>
+            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+              <View style={{ marginHorizontal: 20, backgroundColor: plate.background, borderRadius: 12, maxHeight: 350 }}>
+                <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: plate.gray }}>
+                  <View style={gs.inputContainer}>
+                    <TextInput
+                      style={{ fontSize: 16, backgroundColor: plate.backgroundSecond, borderWidth: 1, borderColor: plate.gray, paddingHorizontal: 12, height: 48, color: plate.text, borderRadius: 8, flex: 1 }}
+                      value={productSearch}
+                      onChangeText={setProductSearch}
+                      onSubmitEditing={() => doProductSearch(productSearch)}
+                      returnKeyType="search"
+                      placeholder={t("settings.productIdPlaceholder")}
+                      placeholderTextColor={plate.textSecond}
+                      autoFocus
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+                {productResults.length > 0 ? (
+                  <FlatList
+                    data={productResults}
+                    keyExtractor={(item: any) => item._id}
+                    renderItem={({ item }: { item: any }) => {
+                      const name = item.nameEn ?? item.nameAr ?? item._id;
+                      return (
+                        <TouchableOpacity
+                          style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: plate.gray }}
+                          onPress={() => selectProduct(item)}
+                        >
+                          <Text style={gs.text}>{name}</Text>
+                        </TouchableOpacity>
+                      );
+                    }}
+                  />
+                ) : (
+                  <View style={{ padding: 20, alignItems: "center" }}>
+                    <Text style={gs.caption}>{t("common.loading")}</Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
   );
 }
 

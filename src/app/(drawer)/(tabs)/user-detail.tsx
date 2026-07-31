@@ -1,5 +1,6 @@
-import { useApiMutation, useApiQuery, queryKeys } from "@/api";
+import { getApiClient, useApiMutation, useApiQuery, queryKeys } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
+import { useAuth } from "@/context/AuthContext";
 import FormField from "@/components/FormField";
 import LoadingScreen from "@/components/LoadingScreen";
 import { Row } from "@/components/Row";
@@ -16,6 +17,7 @@ export default function UserDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
   const { t, i18n } = useTranslation();
+  const { user: currentUser } = useAuth();
   const [showBalanceForm, setShowBalanceForm] = useState(false);
   const [balanceAmount, setBalanceAmount] = useState("");
 
@@ -55,12 +57,46 @@ export default function UserDetailScreen() {
         <View style={[gs.card, { padding: 16 }]}>
           <SectionHeader title={t("user.accountInfo")} />
           <View style={{ gap: 8 }}>
-            <Row label={t("user.phone")} value={user.phone} />
+            <Row label={t("user.name")} value={user.name ?? user.phone} />
             <Row label={t("user.role")} value={user.role} color={user.role === "admin" ? plate.primary : plate.text} />
             <Row label={t("user.balance")} value={`$${user.balance?.toLocaleString() ?? 0}`} color={plate.blue} />
             <Row label={t("user.joined")} value={user.createdAt ? new Date(user.createdAt).toLocaleDateString() : ""} />
           </View>
         </View>
+
+        {currentUser?.role === "super_admin" && user.role !== "super_admin" ? (
+          <View style={[gs.card, { padding: 16, marginBottom: 16 }]}>
+            <SectionHeader title={t("user.role")} />
+            <Text style={[gs.text, { marginBottom: 12 }]}>Current: {user.role}</Text>
+            <TouchableOpacity
+              style={[gs.buttonSecondary]}
+              onPress={() => {
+                const newRole = user.role === "admin" ? "customer" : "admin";
+                Alert.alert(
+                  newRole === "admin" ? "Promote to Admin" : "Demote to Customer",
+                  newRole === "admin" ? "Make this user an admin?" : "Remove admin privileges?",
+                  [
+                    { text: t("common.cancel"), style: "cancel" },
+                    { text: t("common.confirm"), onPress: async () => {
+                      try {
+                        await getApiClient().put(`admin/users/${id}/role`, { role: newRole });
+                        refetch();
+                        Alert.alert("", t("common.success"));
+                      } catch (err) {
+                        Alert.alert(t("common.error"), getErrorMessage(err));
+                      }
+                    }},
+                  ],
+                );
+              }}
+            >
+              <Ionicons name="shield-checkmark-outline" size={18} color={plate.primary} style={{ marginRight: 8 }} />
+              <Text style={gs.buttonTextSecondary}>
+                {user.role === "admin" ? "Demote to Customer" : "Promote to Admin"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {!showBalanceForm ? (
           <TouchableOpacity

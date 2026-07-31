@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function CategoryFormScreen() {
@@ -15,6 +16,7 @@ export default function CategoryFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plate, gs } = useGlobalStyles();
   const isEditing = !!id;
+  const queryClient = useQueryClient();
 
   const [nameEn, setNameEn] = useState("");
   const [nameAr, setNameAr] = useState("");
@@ -40,7 +42,7 @@ export default function CategoryFormScreen() {
   const createMutation = useApiMutation<any, any>({
     method: "post", url: "categories",
     options: {
-      onSuccess: () => { Alert.alert(t("common.success"), t("categoryForm.created")); router.back(); },
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.categories.all }); Alert.alert(t("common.success"), t("categoryForm.created")); router.back(); },
       onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
@@ -48,15 +50,13 @@ export default function CategoryFormScreen() {
   const updateMutation = useApiMutation<any, any>({
     method: "put", url: `categories/${id}`,
     options: {
-      onSuccess: () => { Alert.alert(t("common.success"), t("categoryForm.updated")); router.back(); },
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.categories.all }); Alert.alert(t("common.success"), t("categoryForm.updated")); router.back(); },
       onError: (err) => Alert.alert(t("common.error"), getErrorMessage(err)),
     },
   });
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!nameEn.trim()) e.nameEn = t("categoryForm.validationNameEnRequired");
-    else if (nameEn.trim().length < 2) e.nameEn = t("categoryForm.validationNameEnMinLength");
     if (!nameAr.trim()) e.nameAr = t("categoryForm.validationNameArRequired");
     setErrors(e);
     return Object.keys(e).length === 0;

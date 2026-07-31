@@ -17,6 +17,8 @@ export default function LocationWaysScreen() {
   const [editingWay, setEditingWay] = useState<any>(null);
   const [nameEn, setNameEn] = useState("");
   const [nameAr, setNameAr] = useState("");
+  const [isDirectDelivery, setIsDirectDelivery] = useState(false);
+  const [directDeliveryCharges, setDirectDeliveryCharges] = useState("");
 
   const { data, isLoading, refetch } = useApiQuery<any>({
     url: `locations/states/${stateId}/ways`,
@@ -50,7 +52,7 @@ export default function LocationWaysScreen() {
     },
   });
 
-  const resetForm = () => { setNameEn(""); setNameAr(""); setEditingWay(null); };
+  const resetForm = () => { setNameEn(""); setNameAr(""); setIsDirectDelivery(false); setDirectDeliveryCharges(""); setEditingWay(null); };
 
   const openCreate = () => { resetForm(); setShowForm(true); };
 
@@ -58,12 +60,14 @@ export default function LocationWaysScreen() {
     setEditingWay(w);
     setNameEn(w.nameEn ?? w.name ?? "");
     setNameAr(w.nameAr ?? "");
+    setIsDirectDelivery(w.isDirectDelivery ?? false);
+    setDirectDeliveryCharges(String(w.directDeliveryCharges ?? ""));
     setShowForm(true);
   };
 
   const handleSubmit = () => {
     if (!nameEn.trim() || !nameAr.trim()) { Alert.alert(t("common.error"), t("common.required")); return; }
-    const payload = { nameEn: nameEn.trim(), nameAr: nameAr.trim(), state: stateId };
+    const payload = { nameEn: nameEn.trim(), nameAr: nameAr.trim(), state: stateId, isDirectDelivery, directDeliveryCharges: Number(directDeliveryCharges) || 0 };
     if (editingWay) updateMutation.mutate(payload);
     else createMutation.mutate(payload);
   };
@@ -102,7 +106,7 @@ export default function LocationWaysScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={gs.label}>{item.nameEn ?? item.name}</Text>
-              <Text style={gs.caption}>{item.deliveryCompanyEn ?? item.deliveryCompany ?? ""}</Text>
+              {item.isDirectDelivery ? <Text style={gs.caption}>{t("locations.directDelivery")}</Text> : null}
             </View>
             <TouchableOpacity onPress={() => openEdit(item)} style={{ padding: 8 }}>
               <Ionicons name="create-outline" size={20} color={plate.primary} />
@@ -125,6 +129,17 @@ export default function LocationWaysScreen() {
             <View style={[gs.inputContainer, { marginBottom: 12 }]}>
               <TextInput style={gs.input} placeholder={t("locations.nameAr")} placeholderTextColor={plate.textSecond} value={nameAr} onChangeText={setNameAr} />
             </View>
+
+            <TouchableOpacity style={[gs.containerRow, { marginBottom: 12 }]} onPress={() => setIsDirectDelivery(!isDirectDelivery)}>
+              <Ionicons name={isDirectDelivery ? "checkbox" : "square-outline"} size={22} color={isDirectDelivery ? plate.green : plate.graySecond} />
+              <Text style={[gs.text, { marginLeft: 8 }]}>{t("locations.directDelivery")}</Text>
+            </TouchableOpacity>
+
+            {isDirectDelivery ? (
+              <View style={[gs.inputContainer, { marginBottom: 16 }]}>
+                <TextInput style={gs.input} placeholder={t("locations.directDeliveryChargesPlaceholder")} placeholderTextColor={plate.textSecond} value={directDeliveryCharges} onChangeText={setDirectDeliveryCharges} keyboardType="decimal-pad" />
+              </View>
+            ) : null}
 
             <View style={{ flexDirection: "row", gap: 12 }}>
               <TouchableOpacity style={[gs.button, { flex: 1, backgroundColor: plate.gray }]} onPress={() => { setShowForm(false); resetForm(); }}>

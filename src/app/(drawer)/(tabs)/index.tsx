@@ -31,8 +31,8 @@ export default function DashboardScreen() {
     params: { limit: 1, page: 1 },
   });
 
-  const orderCount = (ordersData as any)?.meta?.total ?? 0;
-  const userCount = (usersData as any)?.meta?.total ?? 0;
+  const orderCount = (ordersData as any)?.meta?.total ?? (ordersData as any)?.data?.length ?? 0;
+  const userCount = (usersData as any)?.meta?.total ?? (usersData as any)?.data?.length ?? 0;
 
   const stats: DashboardStat[] = [
     { label: t("dashboard.statTotalOrders"), value: String(orderCount), icon: "receipt", color: plate.blue, route: "orders" },

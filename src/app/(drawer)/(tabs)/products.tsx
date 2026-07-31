@@ -1,4 +1,4 @@
-import { getApiClient, useApiQuery, queryKeys } from "@/api";
+import { getApiClient, useInfiniteApiQuery, queryKeys } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
@@ -11,17 +11,19 @@ import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, FlatList, Image, RefreshControl, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function ProductsScreen() {
   const { plate, gs } = useGlobalStyles();
   const { t, i18n } = useTranslation();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
 
-  const { data, refetch, isLoading } = useApiQuery<any>({
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } = useInfiniteApiQuery<any>({
     url: "products",
-    queryKey: queryKeys.products.list({ limit: "100" }),
-    params: { limit: 100 },
+    queryKey: queryKeys.products.list({ q: submittedQuery || undefined }),
+    params: { q: submittedQuery || undefined },
   });
 
   const deleteMutation = useMutation({
@@ -31,13 +33,17 @@ export default function ProductsScreen() {
     onSettled: () => setDeleteId(null),
   });
 
-  const products = (data as any)?.data ?? [];
+  const products = data?.pages.flatMap((p) => p.data) ?? [];
+  const totalProducts = data?.pages[0]?.meta?.total ?? 0;
 
-  const renderProduct = ({ item }: { item: any }) => (
+  const renderProduct = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       style={[gs.listItem, { paddingLeft: 0 }]}
       onPress={() => router.push({ pathname: "/(drawer)/(tabs)/product-form" as any, params: { id: item._id } })}
     >
+      <View style={{ width: 28, alignItems: "center", marginRight: 8 }}>
+        <Text style={[gs.caption, { color: plate.textSecond }]}>{index + 1}</Text>
+      </View>
       <Image
         source={{ uri: buildImageUrl(item.images?.[0]) }}
         style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: plate.gray, marginRight: 12 }}
@@ -69,7 +75,7 @@ export default function ProductsScreen() {
   return (
     <View style={gs.safeArea}>
       <View style={[gs.containerRow, { padding: 16, backgroundColor: plate.backgroundSecond, borderBottomWidth: 1, borderBottomColor: plate.gray }]}>
-        <Text style={[gs.h3, { flex: 1 }]}>{t("product.listTitle")}</Text>
+        <Text style={[gs.h3, { flex: 1 }]}>{t("product.listTitle")} ({totalProducts})</Text>
         <TouchableOpacity onPress={() => refetch()} style={{ marginRight: 12 }}>
           <Ionicons name="refresh" size={22} color={plate.primary} />
         </TouchableOpacity>
@@ -82,6 +88,20 @@ export default function ProductsScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: plate.background }}>
+        <TextInput
+          style={{ height: 52, paddingHorizontal: 16, borderRadius: 12, backgroundColor: plate.backgroundSecond, borderWidth: 1.5, borderColor: plate.gray, fontSize: 16, color: plate.text }}
+          placeholder={t("common.search")}
+          placeholderTextColor={plate.textSecond}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onSubmitEditing={() => setSubmittedQuery(searchQuery.trim())}
+          returnKeyType="search"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </View>
+
       <FlatList
         data={products}
         keyExtractor={(item: any) => item._id}
@@ -89,6 +109,9 @@ export default function ProductsScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={[{ paddingHorizontal: 20 }, products.length === 0 && { flex: 1 }]}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+        onEndReached={() => hasNextPage && fetchNextPage()}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={{ padding: 16 }} /> : null}
         ListEmptyComponent={<EmptyState icon="cube-outline" title={t("product.emptyTitle")} subtitle={t("product.emptySubtitle")} />}
       />
 

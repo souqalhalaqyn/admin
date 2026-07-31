@@ -18,7 +18,10 @@ const NAV_ITEMS = [
   { label: "categories", icon: "folder", route: "/(drawer)/(tabs)/categories" },
   { label: "locations", icon: "location", route: "/(drawer)/(tabs)/locations" },
   { label: "users", icon: "people", route: "/(drawer)/(tabs)/users" },
+  { label: "notifications", icon: "notifications", route: "/(drawer)/(tabs)/notifications" },
   { label: "offers", icon: "pricetags", route: "/(drawer)/(tabs)/offers" },
+  { label: "ads", icon: "megaphone", route: "/(drawer)/(tabs)/ads" },
+  { label: "reviews", icon: "star", route: "/(drawer)/(tabs)/reviews" },
   { label: "chargeRequests", icon: "card", route: "/(drawer)/(tabs)/charge-requests" },
   { label: "settings", icon: "settings", route: "/(drawer)/settings" },
 ] as const;
@@ -43,7 +46,7 @@ export default function DrawerLayout() {
                 style={{ width: 44, height: 44, resizeMode: "contain" }}
               />
               <View style={{ flex: 1 }}>
-                <Text style={[gs.label, { fontSize: 16 }]}>{user?.phone ?? t("drawer.admin")}</Text>
+                <Text style={[gs.label, { fontSize: 16 }]}>{user?.name ?? user?.phone ?? t("drawer.admin")}</Text>
                 <Text style={gs.caption}>{t("drawer.adminPanel")}</Text>
               </View>
             </View>

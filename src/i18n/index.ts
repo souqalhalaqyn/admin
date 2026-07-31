@@ -1,3 +1,4 @@
+import { APP_PREFIX } from "@/config/constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getLocales } from "expo-localization";
 import i18n from "i18next";
@@ -11,7 +12,7 @@ const resources = {
   ar: { translation: ar },
 };
 
-const LANGUAGE_STORAGE_KEY = "@barbers-admin:language";
+const LANGUAGE_STORAGE_KEY = `${APP_PREFIX}:language`;
 
 export type LanguageCode = "en" | "ar";
 
@@ -31,6 +32,8 @@ export async function initI18n() {
     fallbackLng: "en",
     interpolation: {
       escapeValue: false,
+      prefix: "{",
+      suffix: "}",
     },
   });
 

@@ -16,6 +16,7 @@ import {
   Modal,
   RefreshControl,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -40,6 +41,7 @@ export default function ChargeRequestsScreen() {
   const { t } = useTranslation();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [confirmItem, setConfirmItem] = useState<{ id: string; action: "done" | "cancelled" } | null>(null);
+  const [approveAmount, setApproveAmount] = useState("");
   const [updating, setUpdating] = useState(false);
 
   const { data, isLoading, refetch } = useApiQuery<{ data: ChargeRequestData[] }>({
@@ -47,11 +49,32 @@ export default function ChargeRequestsScreen() {
     queryKey: queryKeys.chargeRequests.list(),
   });
 
-  const handleUpdate = useCallback(async (id: string, status: string) => {
+  const handleApprove = useCallback(async (id: string, amount: string) => {
+    const amountNum = Number(amount);
+    if (!amountNum || amountNum <= 0) {
+      Alert.alert(t("common.error"), t("chargeRequest.validationAmount"));
+      return;
+    }
     setUpdating(true);
     try {
       const client = getApiClient();
-      await client.put(`charge-requests/admin/${id}/status`, { status });
+      await client.put(`charge-requests/admin/${id}/status`, { status: "done", amount: amountNum });
+      setConfirmItem(null);
+      setApproveAmount("");
+      refetch();
+      Alert.alert(t("common.success"), t("chargeRequest.updated"));
+    } catch (err) {
+      Alert.alert(t("common.error"), getErrorMessage(err));
+    } finally {
+      setUpdating(false);
+    }
+  }, [t, refetch]);
+
+  const handleCancel = useCallback(async (id: string) => {
+    setUpdating(true);
+    try {
+      const client = getApiClient();
+      await client.put(`charge-requests/admin/${id}/status`, { status: "cancelled" });
       setConfirmItem(null);
       refetch();
       Alert.alert(t("common.success"), t("chargeRequest.updated"));
@@ -78,9 +101,13 @@ export default function ChargeRequestsScreen() {
         </View>
       </View>
 
-      <Text style={[gs.textBold, { color: plate.primary, marginBottom: 4 }]}>
-        {t("chargeRequest.amount")}: {item.amount.toFixed(2)} SYP
-      </Text>
+      {item.status === "pending" ? (
+        <Text style={[gs.caption, { marginBottom: 4 }]}>{t("chargeRequest.amount")}: —</Text>
+      ) : (
+        <Text style={[gs.textBold, { color: plate.primary, marginBottom: 4 }]}>
+          {t("chargeRequest.amount")}: {item.amount.toFixed(2)} SYP
+        </Text>
+      )}
 
       <Text style={[gs.caption, { marginBottom: 12 }]}>
         {new Date(item.createdAt).toLocaleDateString()}
@@ -101,7 +128,10 @@ export default function ChargeRequestsScreen() {
           <>
             <TouchableOpacity
               style={[gs.buttonSmall, { backgroundColor: plate.green }]}
-              onPress={() => setConfirmItem({ id: item._id, action: "done" })}
+              onPress={() => {
+                setConfirmItem({ id: item._id, action: "done" });
+                setApproveAmount("");
+              }}
             >
               <Ionicons name="checkmark" size={16} color="#fff" style={{ marginRight: 4 }} />
               <Text style={[gs.textSmall, { color: "#fff" }]}>{t("chargeRequest.approve")}</Text>
@@ -160,12 +190,52 @@ export default function ChargeRequestsScreen() {
         </View>
       </Modal>
 
+      <Modal visible={confirmItem?.action === "done"} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}>
+          <View style={[gs.cardElevated, { width: "85%", padding: 24, borderRadius: 16 }]}>
+            <Text style={[gs.h3, { marginBottom: 16 }]}>{t("chargeRequest.approve")}</Text>
+
+            <Text style={[gs.label, { marginBottom: 8 }]}>{t("chargeRequest.amount")}</Text>
+            <View style={[gs.inputContainer, { marginBottom: 20 }]}>
+              <TextInput
+                style={gs.input}
+                placeholder={t("chargeRequest.amountPlaceholder")}
+                placeholderTextColor={plate.textSecond}
+                keyboardType="numeric"
+                value={approveAmount}
+                onChangeText={setApproveAmount}
+              />
+            </View>
+
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <TouchableOpacity
+                style={[gs.button, { flex: 1, backgroundColor: plate.gray }]}
+                onPress={() => { setConfirmItem(null); setApproveAmount(""); }}
+              >
+                <Text style={[gs.buttonText, { color: plate.text }]}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[gs.button, { flex: 1 }]}
+                onPress={() => confirmItem && handleApprove(confirmItem.id, approveAmount)}
+                disabled={updating}
+              >
+                {updating ? (
+                  <ActivityIndicator color={plate.background} />
+                ) : (
+                  <Text style={gs.buttonText}>{t("chargeRequest.approve")}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <ConfirmDialog
-        visible={!!confirmItem}
+        visible={confirmItem?.action === "cancelled"}
         title={t("chargeRequest.listTitle")}
-        message={t(`chargeRequest.${confirmItem?.action === "done" ? "approveConfirm" : "cancelConfirm"}`)}
+        message={t("chargeRequest.cancelConfirm")}
         confirmLabel={t("common.confirm")}
-        onConfirm={() => confirmItem && handleUpdate(confirmItem.id, confirmItem.action)}
+        onConfirm={() => confirmItem && handleCancel(confirmItem.id)}
         onCancel={() => setConfirmItem(null)}
       />
 

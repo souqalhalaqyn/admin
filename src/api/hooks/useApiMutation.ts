@@ -40,30 +40,4 @@ export function useApiMutation<TData = unknown, TVariables = unknown>(
   });
 }
 
-export function usePostMutation<TData = unknown, TVariables = unknown>(
-  url: string,
-  options?: UseMutationOptions<TData, AxiosError, TVariables>,
-) {
-  return useApiMutation<TData, TVariables>({ method: "post", url, options });
-}
 
-export function usePutMutation<TData = unknown, TVariables = unknown>(
-  url: string,
-  options?: UseMutationOptions<TData, AxiosError, TVariables>,
-) {
-  return useApiMutation<TData, TVariables>({ method: "put", url, options });
-}
-
-export function usePatchMutation<TData = unknown, TVariables = unknown>(
-  url: string,
-  options?: UseMutationOptions<TData, AxiosError, TVariables>,
-) {
-  return useApiMutation<TData, TVariables>({ method: "patch", url, options });
-}
-
-export function useDeleteMutation<TData = unknown, TVariables = unknown>(
-  url: string,
-  options?: UseMutationOptions<TData, AxiosError, TVariables>,
-) {
-  return useApiMutation<TData, TVariables>({ method: "delete", url, options });
-}

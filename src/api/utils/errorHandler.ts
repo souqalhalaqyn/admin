@@ -20,6 +20,4 @@ export function getErrorMessage(error: unknown, fallback?: string): string {
   return parseApiError(error).message || fallback || "Something went wrong";
 }
 
-export function getFieldErrors(error: unknown): Record<string, string[]> | undefined {
-  return parseApiError(error).errors;
-}
+

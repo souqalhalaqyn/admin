@@ -1,4 +1,4 @@
-import { getApiClient, useApiQuery, queryKeys } from "@/api";
+import { getApiClient, useInfiniteApiQuery, queryKeys } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
@@ -10,17 +10,19 @@ import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, RefreshControl, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function CategoriesScreen() {
   const { t, i18n } = useTranslation();
   const { plate, gs } = useGlobalStyles();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
 
-  const { data, refetch, isLoading } = useApiQuery<any>({
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } = useInfiniteApiQuery<any>({
     url: "categories",
-    queryKey: queryKeys.categories.list({ limit: "200" }),
-    params: { limit: 200 },
+    queryKey: queryKeys.categories.list({ q: submittedQuery || undefined }),
+    params: { q: submittedQuery || undefined },
   });
 
   const deleteMutation = useMutation({
@@ -30,13 +32,17 @@ export default function CategoriesScreen() {
     onSettled: () => setDeleteId(null),
   });
 
-  const categories = (data as any)?.data ?? [];
+  const categories = data?.pages.flatMap((p) => p.data) ?? [];
+  const totalCategories = data?.pages[0]?.meta?.total ?? 0;
 
-  const renderCategory = ({ item }: { item: any }) => (
+  const renderCategory = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       style={[gs.listItem, { paddingLeft: 0 }]}
       onPress={() => router.push({ pathname: "/(drawer)/(tabs)/category-form" as any, params: { id: item._id } })}
     >
+      <View style={{ width: 28, alignItems: "center", marginRight: 8 }}>
+        <Text style={[gs.caption, { color: plate.textSecond }]}>{index + 1}</Text>
+      </View>
       <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: plate.blue + "20", justifyContent: "center", alignItems: "center", marginRight: 12 }}>
         <Ionicons name="folder" size={20} color={plate.blue} />
       </View>
@@ -55,7 +61,7 @@ export default function CategoriesScreen() {
   return (
     <View style={gs.safeArea}>
       <View style={[gs.containerRow, { padding: 16, backgroundColor: plate.backgroundSecond, borderBottomWidth: 1, borderBottomColor: plate.gray }]}>
-        <Text style={[gs.h3, { flex: 1 }]}>{t("category.listTitle")}</Text>
+        <Text style={[gs.h3, { flex: 1 }]}>{t("category.listTitle")} ({totalCategories})</Text>
         <TouchableOpacity onPress={() => refetch()} style={{ marginRight: 12 }}>
           <Ionicons name="refresh" size={22} color={plate.primary} />
         </TouchableOpacity>
@@ -68,6 +74,20 @@ export default function CategoriesScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: plate.background }}>
+        <TextInput
+          style={{ height: 52, paddingHorizontal: 16, borderRadius: 12, backgroundColor: plate.backgroundSecond, borderWidth: 1.5, borderColor: plate.gray, fontSize: 16, color: plate.text }}
+          placeholder={t("common.search")}
+          placeholderTextColor={plate.textSecond}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onSubmitEditing={() => setSubmittedQuery(searchQuery.trim())}
+          returnKeyType="search"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </View>
+
       <FlatList
         data={categories}
         keyExtractor={(item: any) => item._id}
@@ -75,6 +95,9 @@ export default function CategoriesScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20 }}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+        onEndReached={() => hasNextPage && fetchNextPage()}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={{ padding: 16 }} /> : null}
         ListEmptyComponent={<EmptyState icon="folder-outline" title={t("category.emptyTitle")} />}
       />
 

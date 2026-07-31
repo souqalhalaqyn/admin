@@ -17,6 +17,7 @@ export default function LocationsScreen() {
   const [nameEn, setNameEn] = useState("");
   const [nameAr, setNameAr] = useState("");
   const [isDirectDelivery, setIsDirectDelivery] = useState(false);
+  const [directDeliveryCharges, setDirectDeliveryCharges] = useState("");
 
   const { data, isLoading, refetch } = useApiQuery<any>({
     url: "locations/states",
@@ -49,7 +50,7 @@ export default function LocationsScreen() {
     },
   });
 
-  const resetForm = () => { setNameEn(""); setNameAr(""); setIsDirectDelivery(false); setEditingState(null); };
+  const resetForm = () => { setNameEn(""); setNameAr(""); setIsDirectDelivery(false); setDirectDeliveryCharges(""); setEditingState(null); };
 
   const openCreate = () => { resetForm(); setShowForm(true); };
 
@@ -58,12 +59,13 @@ export default function LocationsScreen() {
     setNameEn(s.nameEn ?? "");
     setNameAr(s.nameAr ?? "");
     setIsDirectDelivery(s.isDirectDelivery ?? false);
+    setDirectDeliveryCharges(String(s.directDeliveryCharges ?? ""));
     setShowForm(true);
   };
 
   const handleSubmit = () => {
     if (!nameEn.trim() || !nameAr.trim()) { Alert.alert(t("common.error"), t("common.required")); return; }
-    const payload = { nameEn: nameEn.trim(), nameAr: nameAr.trim(), isDirectDelivery };
+    const payload = { nameEn: nameEn.trim(), nameAr: nameAr.trim(), isDirectDelivery, directDeliveryCharges: Number(directDeliveryCharges) || 0 };
     if (editingState) updateMutation.mutate(payload);
     else createMutation.mutate(payload);
   };
@@ -123,10 +125,16 @@ export default function LocationsScreen() {
               <TextInput style={gs.input} placeholder={t("locations.nameAr")} placeholderTextColor={plate.textSecond} value={nameAr} onChangeText={setNameAr} />
             </View>
 
-            <TouchableOpacity style={[gs.containerRow, { marginBottom: 16 }]} onPress={() => setIsDirectDelivery(!isDirectDelivery)}>
+            <TouchableOpacity style={[gs.containerRow, { marginBottom: 12 }]} onPress={() => setIsDirectDelivery(!isDirectDelivery)}>
               <Ionicons name={isDirectDelivery ? "checkbox" : "square-outline"} size={22} color={isDirectDelivery ? plate.green : plate.graySecond} />
               <Text style={[gs.text, { marginLeft: 8 }]}>{t("locations.directDelivery")}</Text>
             </TouchableOpacity>
+
+            {isDirectDelivery ? (
+              <View style={[gs.inputContainer, { marginBottom: 16 }]}>
+                <TextInput style={gs.input} placeholder={t("locations.directDeliveryChargesPlaceholder")} placeholderTextColor={plate.textSecond} value={directDeliveryCharges} onChangeText={setDirectDeliveryCharges} keyboardType="decimal-pad" />
+              </View>
+            ) : null}
 
             <View style={{ flexDirection: "row", gap: 12 }}>
               <TouchableOpacity style={[gs.button, { flex: 1, backgroundColor: plate.gray }]} onPress={() => { setShowForm(false); resetForm(); }}>

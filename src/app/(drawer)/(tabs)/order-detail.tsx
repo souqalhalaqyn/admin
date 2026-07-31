@@ -4,11 +4,12 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import LoadingScreen from "@/components/LoadingScreen";
 import { Row } from "@/components/Row";
 import { useGlobalStyles } from "@/styles/global";
+import { buildImageUrl } from "@/utils/imageUrl";
 import { localizedName } from "@/utils/localizedName";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -66,6 +67,8 @@ export default function OrderDetailScreen() {
   const order = (data as any)?.data;
   const getStatusColor = (status: string) => STATUS_COLORS[status] ?? plate.graySecond;
 
+  const isAr = i18n.language === "ar";
+
   if (isLoading) return <LoadingScreen />;
   if (!order) return <LoadingScreen />;
 
@@ -78,14 +81,16 @@ export default function OrderDetailScreen() {
         <Text style={[gs.h3, { marginLeft: 12 }]}>{t("order.detailTitle")}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={[gs.container, gs.scrollContent]}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
         <View style={[gs.card, { padding: 16 }]}>
           <Text style={[gs.sectionHeader]}>{t("order.orderInfo")}</Text>
           <View style={{ gap: 8 }}>
             <Row label={t("order.orderId")} value={order._id} />
+            <Row label={t("order.name")} value={order.name || order.user?.name || order.user?.phone || t("order.na")} />
             <Row label={t("order.status")} value={t(statusLabelKey(order.status))} color={getStatusColor(order.status)} />
-            <Row label={t("order.total")} value={`$${order.total?.toLocaleString() ?? 0}`} color={plate.primary} />
-            <Row label={t("order.customer")} value={order.user?.phone ?? t("order.na")} />
+            <Row label={t("order.total")} value={`${order.total?.toLocaleString() ?? 0} SYP`} color={plate.primary} />
+            <Row label={t("order.customer")} value={order.user?.name ?? order.user?.phone ?? t("order.na")} />
+            <Row label={t("order.phone")} value={order.phone || order.user?.phone || t("order.na")} />
             <Row label={t("order.location")} value={order.address || order.location || t("order.na")} />
             <Row label={t("order.date")} value={order.createdAt ? new Date(order.createdAt).toLocaleString() : t("order.na")} />
           </View>
@@ -93,24 +98,56 @@ export default function OrderDetailScreen() {
 
         <View style={[gs.card, { padding: 16 }]}>
           <Text style={[gs.sectionHeader]}>{t("order.items", { count: order.items?.length ?? 0 })}</Text>
-          {order.items?.map((item: any, i: number) => (
-            <TouchableOpacity
-              key={i}
-              style={[gs.listItem, { paddingHorizontal: 0 }]}
-              onPress={() => {
-                const productId = item.product?._id ?? item.product;
-                if (productId) router.push({ pathname: "/(drawer)/(tabs)/product-form" as any, params: { id: productId } });
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={gs.label}>{item.name}</Text>
-                <Text style={gs.caption}>{t("order.qty", { qty: item.quantity, price: "$" + item.price })}</Text>
-              </View>
-              <Text style={[gs.textBold, { color: plate.primary }]}>
-                ${(item.quantity * item.price).toLocaleString()}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {order.items?.map((item: any, i: number) => {
+            const productId = item.product?._id ?? item.product;
+            const itemName = item.nameAr ?? item.nameEn ?? item.name ?? "";
+            const imageUri = buildImageUrl(item.image);
+            const total = (item.price ?? 0) * (item.quantity ?? 0);
+            const hasColor = !!item.color;
+
+            return (
+              <TouchableOpacity
+                key={i}
+                style={[gs.cardFlat, { padding: 12, marginBottom: 10, flexDirection: "row", gap: 12 }]}
+                onPress={() => {
+                  if (productId) router.push({ pathname: "/(drawer)/(tabs)/product-detail" as any, params: { id: productId } });
+                }}
+              >
+                {imageUri ? (
+                  <Image
+                    source={{ uri: imageUri }}
+                    style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: plate.gray }}
+                  />
+                ) : (
+                  <View style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: plate.gray, justifyContent: "center", alignItems: "center" }}>
+                    <Ionicons name="image-outline" size={24} color={plate.graySecond} />
+                  </View>
+                )}
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={gs.label} numberOfLines={2}>{itemName}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Text style={[gs.caption]}>{item.price?.toLocaleString()} SYP</Text>
+                    <Text style={[gs.caption, { color: plate.textSecond }]}>× {item.quantity}</Text>
+                    {hasColor && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <View
+                          style={{
+                            width: 14, height: 14, borderRadius: 7,
+                            backgroundColor: /^#[0-9a-fA-F]{6}$/.test(item.color) ? item.color : plate.gray,
+                            borderWidth: 1, borderColor: plate.graySecond,
+                          }}
+                        />
+                        <Text style={[gs.caption, { fontSize: 11 }]}>{item.color}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[gs.textBold, { color: plate.primary }]}>
+                    {t("order.total")}: {total.toLocaleString()} SYP
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {STATUS_TRANSITIONS[order.status] ? (
@@ -175,5 +212,3 @@ export default function OrderDetailScreen() {
     </View>
   );
 }
-
-

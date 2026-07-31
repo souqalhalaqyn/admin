@@ -43,7 +43,7 @@ export default function OrdersScreen() {
       onPress={() => router.push({ pathname: "/(drawer)/(tabs)/order-detail" as any, params: { id: item._id } })}
     >
       <View style={[gs.rowBetween, { marginBottom: 8 }]}>
-        <Text style={[gs.label, { flex: 1 }]}>{item.user?.phone ?? t("order.unknownUser")}</Text>
+        <Text style={[gs.label, { flex: 1 }]}>{item.user?.name ?? item.user?.phone ?? t("order.unknownUser")}</Text>
         <View style={[gs.badge, { backgroundColor: getStatusColor(item.status) + "20" }]}>
           <Text style={[gs.badgeText, { color: getStatusColor(item.status), fontSize: 11 }]}>
             {getStatusLabel(item.status)}
@@ -107,11 +107,11 @@ export default function OrdersScreen() {
         renderItem={renderOrder}
         style={{ flex: 1 }}
         contentContainerStyle={[{ paddingHorizontal: 20 }, orders.length === 0 && { flex: 1 }]}
-        onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
-        onEndReachedThreshold={0.5}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+        onEndReached={() => hasNextPage && fetchNextPage()}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={{ padding: 16 }} /> : null}
         ListEmptyComponent={<EmptyState icon="receipt-outline" title={t("order.emptyList")} />}
-        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={{ padding: 20 }} /> : null}
       />
 
     </View>

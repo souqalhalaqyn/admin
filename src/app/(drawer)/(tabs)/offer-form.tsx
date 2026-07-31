@@ -1,31 +1,31 @@
-import { getApiClient, useApiMutation, useApiQuery } from "@/api";
+import { getApiClient, useApiQuery } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
+import { uploadFiles } from "@/utils/uploadFile";
 import FormField from "@/components/FormField";
 import ImageField from "@/components/ImageField";
 import LoadingScreen from "@/components/LoadingScreen";
 import PickerSelect from "@/components/PickerSelect";
 import SectionHeader from "@/components/SectionHeader";
+import UploadProgressModal from "@/components/UploadProgressModal";
 import { useGlobalStyles } from "@/styles/global";
 import { localizedName } from "@/utils/localizedName";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 interface ProductForm {
   nameEn: string; nameAr: string; price: string; stock: string;
-  shortDescriptionEn: string; shortDescriptionAr: string;
-  longDescriptionEn: string; longDescriptionAr: string;
+  descriptionEn: string; descriptionAr: string;
   images: string[]; tagsEn: string; tagsAr: string;
   aliasesEn: string; aliasesAr: string; notesEn: string; notesAr: string;
 }
 
 const emptyProduct = (): ProductForm => ({
   nameEn: "", nameAr: "", price: "", stock: "0",
-  shortDescriptionEn: "", shortDescriptionAr: "",
-  longDescriptionEn: "", longDescriptionAr: "",
+  descriptionEn: "", descriptionAr: "",
   images: [], tagsEn: "", tagsAr: "", aliasesEn: "", aliasesAr: "", notesEn: "", notesAr: "",
 });
 
@@ -35,13 +35,56 @@ export default function OfferFormScreen() {
   const { t, i18n } = useTranslation();
   const isEditing = !!id;
   const [step, setStep] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const abortRef = useRef<(() => void) | null>(null);
+  const pendingFormDataRef = useRef<FormData | null>(null);
+
+  const runUpload = useCallback(async (formData: FormData) => {
+    setUploadProgress(0);
+    setUploadError(null);
+    setUploading(true);
+    pendingFormDataRef.current = formData;
+    try {
+      const { filenames, abort } = await uploadFiles(formData, setUploadProgress);
+      abortRef.current = abort;
+      return filenames;
+    } catch (err: any) {
+      setUploadError(err?.message ?? t("common.uploadError"));
+      return null;
+    }
+  }, [t]);
+
+  const retryUpload = useCallback(() => {
+    if (pendingFormDataRef.current) {
+      const formData = pendingFormDataRef.current;
+      runUpload(formData).then((filenames) => {
+        if (filenames) {
+          setUploading(false);
+          setUploadProgress(0);
+          abortRef.current = null;
+          pendingFormDataRef.current = null;
+        }
+      });
+    }
+  }, [runUpload]);
+
+  const cancelUpload = useCallback(() => {
+    abortRef.current?.();
+    setUploading(false);
+    setUploadProgress(0);
+    setUploadError(null);
+    abortRef.current = null;
+    pendingFormDataRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    return () => abortRef.current?.();
+  }, []);
 
   const [nameEn, setNameEn] = useState("");
   const [nameAr, setNameAr] = useState("");
-  const [shortDescriptionEn, setShortDescriptionEn] = useState("");
-  const [shortDescriptionAr, setShortDescriptionAr] = useState("");
-  const [longDescriptionEn, setLongDescriptionEn] = useState("");
-  const [longDescriptionAr, setLongDescriptionAr] = useState("");
   const [brandId, setBrandId] = useState("");
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
@@ -54,6 +97,15 @@ export default function OfferFormScreen() {
   const [unitSellPrice, setUnitSellPrice] = useState("");
   const [commissionPercent, setCommissionPercent] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Auto-fill offer details from the first product's fields
+  useEffect(() => {
+    if (products.length > 0) {
+      const p = products[0];
+      if (p.stock && !isEditing) setTotalQuantity(p.stock);
+      if (p.price && !isEditing) setUnitSellPrice(p.price);
+    }
+  }, [products[0]?.stock, products[0]?.price, isEditing]);
 
   const { data: brandsData } = useApiQuery<any>({
     url: "brands", queryKey: ["api", "brands", "list", "all"], params: { limit: 200 },
@@ -81,10 +133,6 @@ export default function OfferFormScreen() {
       const c = o.container || {};
       setNameEn(c.nameEn ?? "");
       setNameAr(c.nameAr ?? "");
-      setShortDescriptionEn(c.shortDescriptionEn ?? "");
-      setShortDescriptionAr(c.shortDescriptionAr ?? "");
-      setLongDescriptionEn(c.longDescriptionEn ?? "");
-      setLongDescriptionAr(c.longDescriptionAr ?? "");
       setBrandId(c.brand?._id ?? c.brand ?? "");
       setCategoryIds((c.categories ?? []).map((cat: any) => cat._id ?? cat));
       setIsActive(c.isActive ?? true);
@@ -100,21 +148,23 @@ export default function OfferFormScreen() {
     if (!permission.granted) { Alert.alert(t("common.permissionRequired")); return; }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
     if (result.canceled || !result.assets?.[0]) return;
-    try {
-      const localUri = result.assets[0].uri;
-      const filename = localUri.split("/").pop() || "image.jpg";
-      const formData = new FormData();
-      formData.append("images", { uri: localUri, name: filename, type: "image/jpeg" } as any);
-      const client = getApiClient();
-      const response = await client.post("/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
-      const filenames: string[] = response.data?.data ?? [];
+    const localUri = result.assets[0].uri;
+    const filename = localUri.split("/").pop() || "image.jpg";
+    const formData = new FormData();
+    formData.append("images", { uri: localUri, name: filename, type: "image/jpeg" } as any);
+    const filenames = await runUpload(formData);
+    if (filenames) {
       setProducts((prev) => {
         const next = [...prev];
         next[productIndex] = { ...next[productIndex], images: [...next[productIndex].images, ...filenames] };
         return next;
       });
-    } catch (err) { Alert.alert(t("common.error"), getErrorMessage(err)); }
-  }, [t]);
+      setUploading(false);
+      setUploadProgress(0);
+      abortRef.current = null;
+      pendingFormDataRef.current = null;
+    }
+  }, [t, runUpload]);
 
   const updateProduct = (index: number, field: keyof ProductForm, value: any) => {
     setProducts((prev) => {
@@ -140,6 +190,10 @@ export default function OfferFormScreen() {
   };
 
   const handleSave = async () => {
+    if (uploading) {
+      Alert.alert("", "Please wait, images are still uploading");
+      return;
+    }
     if (!brandId || !nameEn.trim() || !nameAr.trim()) {
       Alert.alert("", t("offer.validationContainerRequired")); return;
     }
@@ -162,15 +216,11 @@ export default function OfferFormScreen() {
         containerId = offerData.data.container._id;
         await client.put(`containers/${containerId}`, {
           nameEn: nameEn.trim(), nameAr: nameAr.trim(),
-          shortDescriptionEn: shortDescriptionEn.trim(), shortDescriptionAr: shortDescriptionAr.trim(),
-          longDescriptionEn: longDescriptionEn.trim(), longDescriptionAr: longDescriptionAr.trim(),
           brand: brandId, categories: categoryIds, isActive,
         });
       } else {
         const containerRes = await client.post("containers", {
           nameEn: nameEn.trim(), nameAr: nameAr.trim(),
-          shortDescriptionEn: shortDescriptionEn.trim(), shortDescriptionAr: shortDescriptionAr.trim(),
-          longDescriptionEn: longDescriptionEn.trim(), longDescriptionAr: longDescriptionAr.trim(),
           brand: brandId, categories: categoryIds, isActive,
         });
         containerId = containerRes.data?.data?._id;
@@ -183,9 +233,9 @@ export default function OfferFormScreen() {
         if (isEditing && i === 0 && offerData?.data?.product?._id) {
           await client.put(`products/${offerData.data.product._id}`, {
             nameEn: p.nameEn.trim(), nameAr: p.nameAr.trim(),
-            shortDescriptionEn: p.shortDescriptionEn.trim(), shortDescriptionAr: p.shortDescriptionAr.trim(),
-            longDescriptionEn: p.longDescriptionEn.trim(), longDescriptionAr: p.longDescriptionAr.trim(),
+            descriptionEn: p.descriptionEn.trim(), descriptionAr: p.descriptionAr.trim(),
             price: Number(p.price), stock: Number(p.stock) || 0,
+            currency: "syp", isActive: false,
             container: containerId, images: p.images,
             tagsEn: p.tagsEn.split(",").map((x: string) => x.trim()).filter(Boolean),
             tagsAr: p.tagsAr.split(",").map((x: string) => x.trim()).filter(Boolean),
@@ -198,9 +248,9 @@ export default function OfferFormScreen() {
         } else {
           const prodRes = await client.post("products", {
             nameEn: p.nameEn.trim(), nameAr: p.nameAr.trim(),
-            shortDescriptionEn: p.shortDescriptionEn.trim(), shortDescriptionAr: p.shortDescriptionAr.trim(),
-            longDescriptionEn: p.longDescriptionEn.trim(), longDescriptionAr: p.longDescriptionAr.trim(),
+            descriptionEn: p.descriptionEn.trim(), descriptionAr: p.descriptionAr.trim(),
             price: Number(p.price), stock: Number(p.stock) || 0,
+            currency: "syp", isActive: false,
             container: containerId, images: p.images,
             tagsEn: p.tagsEn.split(",").map((x: string) => x.trim()).filter(Boolean),
             tagsAr: p.tagsAr.split(",").map((x: string) => x.trim()).filter(Boolean),
@@ -284,16 +334,12 @@ export default function OfferFormScreen() {
 
       {renderStepIndicator()}
 
-      <ScrollView contentContainerStyle={[gs.container, gs.scrollContent]}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
         {step === 0 && (
           <>
             <SectionHeader title={t("offer.containerStepTitle")} />
             <FormField label={t("containerForm.nameEn")} value={nameEn} onChangeText={setNameEn} placeholder={t("containerForm.nameEnPlaceholder")} required />
             <FormField label={t("containerForm.nameAr")} value={nameAr} onChangeText={setNameAr} placeholder={t("containerForm.nameArPlaceholder")} required />
-            <FormField label={t("containerForm.shortDescEn")} value={shortDescriptionEn} onChangeText={setShortDescriptionEn} placeholder={t("containerForm.shortDescEnPlaceholder")} />
-            <FormField label={t("containerForm.shortDescAr")} value={shortDescriptionAr} onChangeText={setShortDescriptionAr} placeholder={t("containerForm.shortDescArPlaceholder")} />
-            <FormField label={t("containerForm.longDescEn")} value={longDescriptionEn} onChangeText={setLongDescriptionEn} placeholder={t("containerForm.longDescEnPlaceholder")} multiline numberOfLines={3} style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }} />
-            <FormField label={t("containerForm.longDescAr")} value={longDescriptionAr} onChangeText={setLongDescriptionAr} placeholder={t("containerForm.longDescArPlaceholder")} multiline numberOfLines={3} style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }} />
             <PickerSelect label={t("containerForm.brand")} options={brandOptions} selected={brandId} onSelect={setBrandId} required placeholder={t("containerForm.brandPlaceholder")} />
             <View style={{ marginBottom: 16 }}>
               <Text style={[gs.label, { marginBottom: 6 }]}>{t("containerForm.categories")}</Text>
@@ -341,10 +387,8 @@ export default function OfferFormScreen() {
                   <View style={{ marginTop: 12 }}>
                     <FormField label={t("productForm.nameEn")} value={p.nameEn} onChangeText={(v) => updateProduct(i, "nameEn", v)} placeholder={t("productForm.nameEnPlaceholder")} required />
                     <FormField label={t("productForm.nameAr")} value={p.nameAr} onChangeText={(v) => updateProduct(i, "nameAr", v)} placeholder={t("productForm.nameArPlaceholder")} required />
-                    <FormField label={t("productForm.shortDescEn")} value={p.shortDescriptionEn} onChangeText={(v) => updateProduct(i, "shortDescriptionEn", v)} placeholder={t("productForm.shortDescEnPlaceholder")} />
-                    <FormField label={t("productForm.shortDescAr")} value={p.shortDescriptionAr} onChangeText={(v) => updateProduct(i, "shortDescriptionAr", v)} placeholder={t("productForm.shortDescArPlaceholder")} />
-                    <FormField label={t("productForm.longDescEn")} value={p.longDescriptionEn} onChangeText={(v) => updateProduct(i, "longDescriptionEn", v)} placeholder={t("productForm.longDescEnPlaceholder")} multiline numberOfLines={3} style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }} />
-                    <FormField label={t("productForm.longDescAr")} value={p.longDescriptionAr} onChangeText={(v) => updateProduct(i, "longDescriptionAr", v)} placeholder={t("productForm.longDescArPlaceholder")} multiline numberOfLines={3} style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }} />
+                    <FormField label={t("productForm.descEn")} value={p.descriptionEn} onChangeText={(v) => updateProduct(i, "descriptionEn", v)} placeholder={t("productForm.descEnPlaceholder")} multiline numberOfLines={3} style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }} />
+                    <FormField label={t("productForm.descAr")} value={p.descriptionAr} onChangeText={(v) => updateProduct(i, "descriptionAr", v)} placeholder={t("productForm.descArPlaceholder")} multiline numberOfLines={3} style={{ minHeight: 60, textAlignVertical: "top", paddingTop: 12 }} />
                     <View style={{ flexDirection: "row", gap: 12 }}>
                       <View style={{ flex: 1 }}>
                         <FormField label={t("productForm.price")} value={p.price} onChangeText={(v) => updateProduct(i, "price", v)} placeholder={t("productForm.pricePlaceholder")} keyboardType="decimal-pad" required />
@@ -391,6 +435,15 @@ export default function OfferFormScreen() {
           </>
         )}
       </ScrollView>
+
+      <UploadProgressModal
+        visible={uploading || !!uploadError}
+        progress={uploadProgress}
+        error={uploadError}
+        onRetry={retryUpload}
+        onCancel={cancelUpload}
+        onDismiss={() => { setUploadError(null); setUploading(false); setUploadProgress(0); abortRef.current = null; pendingFormDataRef.current = null; }}
+      />
     </KeyboardAvoidingView>
   );
 }

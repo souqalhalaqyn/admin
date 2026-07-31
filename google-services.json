@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "433768340888",
+    "project_id": "souqalhalaqeen-b282f",
+    "storage_bucket": "souqalhalaqeen-b282f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:433768340888:android:f20bd19c124a65e7fb1fed",
+        "android_client_info": {
+          "package_name": "com.rawadag.barbersadmin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-hxN67uXfniwYyORlOlrSqNRC5jsUpEQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:433768340888:android:8e6b3205bb1ba0dcfb1fed",
+        "android_client_info": {
+          "package_name": "com.rawadag.barbersshop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-hxN67uXfniwYyORlOlrSqNRC5jsUpEQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
