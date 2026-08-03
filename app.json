@@ -2,7 +2,7 @@
   "expo": {
     "name": "Barber Admin",
     "slug": "barbers-admin",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/1024x1024.png",
     "scheme": "barbersadmin",
@@ -51,12 +51,11 @@
       [
         "expo-build-properties",
         {
-          "android": {
-            "usesCleartextTraffic": true
-          }
+          "android": {}
         }
       ],
-      ["./plugins/withLocalizedAppLabel.js", { "ar": "ادمن سوق الحلاقين" }]
+      ["./plugins/withLocalizedAppLabel.js", { "ar": "ادمن سوق الحلاقين" }],
+      "./plugins/withApkInstaller.js"
     ],
     "experiments": {
       "typedRoutes": true,

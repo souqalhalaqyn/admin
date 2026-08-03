@@ -1,8 +1,7 @@
-import { getApiClient, useApiQuery, queryKeys } from "@/api";
+import { getApiClient, useApiQuery } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import { useGlobalStyles } from "@/styles/global";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";

@@ -1,5 +1,4 @@
 import { useGlobalStyles } from "@/styles/global";
-import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, Pressable, Text, TouchableOpacity, View } from "react-native";
 
@@ -15,14 +14,6 @@ interface Props {
 export default function UploadProgressModal({ visible, progress, error, onRetry, onCancel, onDismiss }: Props) {
   const { plate, gs } = useGlobalStyles();
   const { t } = useTranslation();
-  const retryRef = useRef(onRetry);
-  retryRef.current = onRetry;
-
-  useEffect(() => {
-    if (!visible) return;
-    const onHardwareBack = () => { onCancel(); return true; };
-    return () => {};
-  }, [visible, onCancel]);
 
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onCancel}>

@@ -1,6 +1,7 @@
 import { useGlobalStyles } from "@/styles/global";
 import { Ionicons } from "@expo/vector-icons";
-import ColorPicker, { Panel5, PreviewText, Swatches, returnedResults } from "reanimated-color-picker";
+import ColorPicker, { Panel5, PreviewText, Swatches } from "reanimated-color-picker";
+import type { ColorFormatsObject } from "reanimated-color-picker";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, Text, TouchableOpacity, View } from "react-native";
@@ -41,7 +42,7 @@ export default function HSLColorPicker({ visible, onClose, onColor }: HSLColorPi
           <ColorPicker
             style={{ width: "100%", gap: 16 }}
             value={selectedColor}
-            onCompleteJS={(color: returnedResults) => setSelectedColor(color.hex)}
+            onCompleteJS={(color: ColorFormatsObject) => setSelectedColor(color.hex)}
           >
             <Panel5 />
             <PreviewText style={{ color: plate.text }} />

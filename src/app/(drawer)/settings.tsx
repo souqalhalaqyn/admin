@@ -246,9 +246,9 @@ export default function SettingsScreen() {
                 name: "slider.jpg",
               } as any);
 
-              const filenames = await uploadFiles(formData);
-              if (filenames[0]) {
-                setSliderEntries([...sliderEntries, { image: filenames[0] }]);
+              const upload = await uploadFiles(formData);
+              if (upload.filenames[0]) {
+                setSliderEntries([...sliderEntries, { image: upload.filenames[0] }]);
               }
             } catch (err) {
               Alert.alert(t("common.error"), getErrorMessage(err));

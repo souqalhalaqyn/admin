@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Barbers Admin" },
+  "app": {
+    "name": "Barbers Admin"
+  },
   "common": {
     "loading": "Loading...",
     "save": "Save",
@@ -295,7 +297,11 @@
     "title": "Settings",
     "appearance": "Appearance",
     "theme": "Theme",
-    "themeOptions": { "system": "System", "light": "Light", "dark": "Dark" },
+    "themeOptions": {
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
     "language": "Language",
     "exchangeRate": "Exchange Rate",
     "exchangeRateSubtitle": "SYR to USD",
@@ -333,7 +339,6 @@
     "validationAmount": "Enter a valid amount",
     "amountPlaceholder": "Enter amount to add"
   },
-
   "offer": {
     "listTitle": "Offers",
     "createButton": "Create Offer",
@@ -374,7 +379,6 @@
     "validationContainerRequired": "All container fields are required",
     "validationProductRequired": "Product #{index} is missing required fields"
   },
-
   "ads": {
     "listTitle": "Ad Requests",
     "emptyList": "No ad requests",
@@ -398,7 +402,6 @@
     "productLabel": "Product",
     "validationContainerArRequired": "Container name (Arabic) is required"
   },
-
   "notifications": {
     "composeTitle": "Send Notification",
     "title": "Title",
@@ -432,16 +435,16 @@
     "savedQuick": "Saved as quick notification",
     "deleteQuickConfirm": "Delete this quick notification?"
   },
-
   "update": {
     "title": "Update Available",
     "description": "A new version of the app is available. Please download the latest version and reinstall.",
     "currentVersion": "Current Version",
     "newVersion": "New Version",
-    "instructions": "After downloading, please uninstall the old app first, then install the new APK file.",
-    "downloadButton": "Download Latest Version"
+    "instructions": "The download starts automatically, then just follow the install prompt. The new version replaces the old one and your data stays safe.",
+    "downloadButton": "Download Latest Version",
+    "downloading": "Downloading...",
+    "downloadError": "Download failed. Please check your connection and try again."
   },
-
   "locations": {
     "states": "States",
     "directDelivery": "Direct Delivery",
@@ -461,7 +464,6 @@
     "directDeliveryCharges": "Direct Delivery Charges",
     "directDeliveryChargesPlaceholder": "e.g. 5000"
   },
-
   "language": {
     "english": "English",
     "arabic": "العربية"

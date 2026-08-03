@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Linking, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Platform, Text, TouchableOpacity, View } from "react-native";
+import { downloadAndInstallApk } from "@/utils/installApk";
 
 interface Props {
   currentVersion: string;
@@ -10,9 +12,30 @@ interface Props {
 
 export default function UpdateScreen({ currentVersion, newVersion, downloadUrl }: Props) {
   const { t } = useTranslation();
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState(false);
 
-  const handleDownload = () => {
-    Linking.openURL(downloadUrl);
+  const handleDownload = async () => {
+    if (downloading) return;
+    if (Platform.OS !== "android") {
+      Linking.openURL(downloadUrl);
+      return;
+    }
+    setDownloading(true);
+    setProgress(0);
+    setError(false);
+    try {
+      await downloadAndInstallApk(downloadUrl, setProgress);
+    } catch (e) {
+      setError(true);
+      console.error("APK download/install failed:", e);
+      Alert.alert(t("common.error"), t("update.downloadError"), [
+        { text: t("common.ok"), style: "default" },
+      ]);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -49,12 +72,36 @@ export default function UpdateScreen({ currentVersion, newVersion, downloadUrl }
       </View>
 
       <TouchableOpacity
-        style={{ backgroundColor: "#FBBF24", width: "100%", paddingVertical: 14, borderRadius: 12, flexDirection: "row", justifyContent: "center", alignItems: "center" }}
+        style={{ backgroundColor: downloading ? "#94A3B8" : "#FBBF24", width: "100%", paddingVertical: 14, borderRadius: 12, flexDirection: "row", justifyContent: "center", alignItems: "center" }}
         onPress={handleDownload}
+        disabled={downloading}
       >
-        <Ionicons name="download-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
-        <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>{t("update.downloadButton")}</Text>
+        {downloading ? (
+          <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+        ) : (
+          <Ionicons name="download-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+        )}
+        <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>
+          {downloading ? t("update.downloading") : t("update.downloadButton")}
+        </Text>
       </TouchableOpacity>
+
+      {downloading ? (
+        <View style={{ width: "100%", marginTop: 16 }}>
+          <View style={{ width: "100%", height: 8, borderRadius: 4, backgroundColor: "#E2E8F0", overflow: "hidden" }}>
+            <View style={{ width: `${Math.round(progress * 100)}%`, height: "100%", backgroundColor: "#FBBF24" }} />
+          </View>
+          <Text style={{ marginTop: 8, fontSize: 12, color: "#64748B", textAlign: "center" }}>
+            {Math.round(progress * 100)}%
+          </Text>
+        </View>
+      ) : null}
+
+      {error ? (
+        <Text style={{ marginTop: 12, fontSize: 13, color: "#EF4444", textAlign: "center" }}>
+          {t("update.downloadError")}
+        </Text>
+      ) : null}
     </View>
   );
 }

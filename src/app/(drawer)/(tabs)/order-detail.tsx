@@ -67,8 +67,6 @@ export default function OrderDetailScreen() {
   const order = (data as any)?.data;
   const getStatusColor = (status: string) => STATUS_COLORS[status] ?? plate.graySecond;
 
-  const isAr = i18n.language === "ar";
-
   if (isLoading) return <LoadingScreen />;
   if (!order) return <LoadingScreen />;
 

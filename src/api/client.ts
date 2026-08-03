@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosInstance, CreateAxiosDefaults, InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosError, AxiosInstance, create as createAxios, CreateAxiosDefaults, InternalAxiosRequestConfig } from "axios";
 import i18n from "@/i18n";
 
 import { SERVER_URL } from "@/config/constants";
@@ -11,10 +11,10 @@ let configCache: ApiConfig = {
 };
 
 let isRefreshing = false;
-let failedQueue: Array<{
+let failedQueue: {
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
-}> = [];
+}[] = [];
 
 function processQueue(error: unknown, token: string | null) {
   failedQueue.forEach((prom) => {
@@ -69,7 +69,7 @@ function createApiClient(config?: Partial<ApiConfig>): AxiosInstance {
     };
   }
 
-  const instance = axios.create(defaults);
+  const instance = createAxios(defaults);
 
   instance.interceptors.request.use(
     (reqConfig: InternalAxiosRequestConfig) => {

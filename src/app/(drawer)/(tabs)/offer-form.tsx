@@ -98,14 +98,14 @@ export default function OfferFormScreen() {
   const [commissionPercent, setCommissionPercent] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const firstProduct = products[0];
+
   // Auto-fill offer details from the first product's fields
   useEffect(() => {
-    if (products.length > 0) {
-      const p = products[0];
-      if (p.stock && !isEditing) setTotalQuantity(p.stock);
-      if (p.price && !isEditing) setUnitSellPrice(p.price);
-    }
-  }, [products[0]?.stock, products[0]?.price, isEditing]);
+    if (!firstProduct) return;
+    if (firstProduct.stock && !isEditing) setTotalQuantity(firstProduct.stock);
+    if (firstProduct.price && !isEditing) setUnitSellPrice(firstProduct.price);
+  }, [firstProduct, isEditing]);
 
   const { data: brandsData } = useApiQuery<any>({
     url: "brands", queryKey: ["api", "brands", "list", "all"], params: { limit: 200 },

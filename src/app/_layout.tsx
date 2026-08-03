@@ -118,7 +118,7 @@ function InnerLayout() {
         responseListenerRef.current.remove();
       }
     };
-  }, [isLoading, isAuthenticated]);
+  }, [isLoading, isAuthenticated, router]);
 
   if (isLoading) {
     return (

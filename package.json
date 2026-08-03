@@ -4,10 +4,11 @@
   "version": "1.0.0",
   "scripts": {
     "start": "npx expo start --localhost",
+    "lint": "expo lint",
     "ota": "eas update --channel production --auto --message \"updates\"",
     "build-dev": "npx eas build --platform android --profile development",
     "build-prod": "npx eas build --platform android --profile production",
-    "url":"eas build:list --profile production --non-interactive --json --limit=1 | jq -r '.[] | select(.status==\"FINISHED\") | .artifacts.applicationArchiveUrl'"
+    "url": "eas build:list --profile production --non-interactive --json --limit=1 | jq -r '.[] | select(.status==\"FINISHED\") | .artifacts.applicationArchiveUrl'"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -22,9 +23,11 @@
     "expo-constants": "~55.0.15",
     "expo-dev-client": "~55.0.35",
     "expo-device": "~55.0.18",
+    "expo-file-system": "~55.0.24",
     "expo-font": "~55.0.8",
     "expo-image": "~55.0.11",
     "expo-image-picker": "~55.0.0",
+    "expo-intent-launcher": "~55.0.14",
     "expo-linear-gradient": "~55.0.16",
     "expo-linking": "~55.0.15",
     "expo-localization": "~55.0.15",

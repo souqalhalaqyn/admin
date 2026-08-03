@@ -14,10 +14,10 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 interface AdItem {
   _id: string;
   container: { nameEn: string; nameAr: string; descriptionEn: string; descriptionAr: string };
-  products: Array<{
+  products: {
     nameEn: string; nameAr: string; price: number; stock: number;
     images: string[]; descriptionEn: string; descriptionAr: string;
-  }>;
+  }[];
   user: { phone: string };
   status: string;
   rejectionReason?: string;
@@ -27,10 +27,10 @@ interface AdItem {
 interface EditForm {
   containerNameAr: string; containerNameEn: string;
   containerDescAr: string; containerDescEn: string;
-  products: Array<{
+  products: {
     nameAr: string; nameEn: string; price: string; stock: string;
     descriptionAr: string; descriptionEn: string;
-  }>;
+  }[];
 }
 
 const FILTERS = ["all", "pending", "approved", "rejected"] as const;

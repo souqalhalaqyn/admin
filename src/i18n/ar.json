@@ -1,5 +1,7 @@
 {
-  "app": { "name": "لوحة تحكم الحلاقين" },
+  "app": {
+    "name": "لوحة تحكم الحلاقين"
+  },
   "common": {
     "loading": "جاري التحميل...",
     "save": "حفظ",
@@ -295,7 +297,11 @@
     "title": "الإعدادات",
     "appearance": "المظهر",
     "theme": "المظهر",
-    "themeOptions": { "system": "تلقائي", "light": "فاتح", "dark": "داكن" },
+    "themeOptions": {
+      "system": "تلقائي",
+      "light": "فاتح",
+      "dark": "داكن"
+    },
     "language": "اللغة",
     "exchangeRate": "سعر الصرف",
     "exchangeRateSubtitle": "ل.س إلى دولار",
@@ -333,7 +339,6 @@
     "validationAmount": "أدخل مبلغاً صحيحاً",
     "amountPlaceholder": "أدخل المبلغ المراد إضافته"
   },
-
   "offer": {
     "listTitle": "العروض",
     "createButton": "إنشاء عرض",
@@ -374,7 +379,6 @@
     "validationContainerRequired": "جميع حقول الحاوية مطلوبة",
     "validationProductRequired": "المنتج #{index} ينقصه حقول مطلوبة"
   },
-
   "ads": {
     "listTitle": "طلبات الإعلانات",
     "emptyList": "لا توجد طلبات إعلانات",
@@ -398,7 +402,6 @@
     "productLabel": "المنتج",
     "validationContainerArRequired": "اسم الحاوية (عربي) مطلوب"
   },
-
   "notifications": {
     "composeTitle": "إرسال إشعار",
     "title": "العنوان",
@@ -432,16 +435,16 @@
     "savedQuick": "تم الحفظ كإشعار سريع",
     "deleteQuickConfirm": "حذف هذا الإشعار السريع؟"
   },
-
   "update": {
     "title": "تحديث متاح",
     "description": "نسخة جديدة من التطبيق متاحة. يرجى تنزيل أحدث إصدار وإعادة التثبيت.",
     "currentVersion": "النسخة الحالية",
     "newVersion": "النسخة الجديدة",
-    "instructions": "بعد التنزيل، يرجى إلغاء تثبيت التطبيق القديم أولاً، ثم تثبيت ملف APK الجديد.",
-    "downloadButton": "تنزيل أحدث إصدار"
+    "instructions": "يبدأ التنزيل تلقائياً، ثم اتبع تعليمات التثبيت. النسخة الجديدة تحل محل القديمة وبياناتك تبقى آمنة.",
+    "downloadButton": "تنزيل أحدث إصدار",
+    "downloading": "جارٍ التنزيل...",
+    "downloadError": "فشل التنزيل. تحقق من اتصالك وحاول مرة أخرى."
   },
-
   "locations": {
     "states": "المناطق",
     "directDelivery": "توصيل مباشر",
@@ -461,7 +464,6 @@
     "directDeliveryCharges": "رسوم التوصيل المباشر",
     "directDeliveryChargesPlaceholder": "مثال: 5000"
   },
-
   "language": {
     "english": "English",
     "arabic": "العربية"

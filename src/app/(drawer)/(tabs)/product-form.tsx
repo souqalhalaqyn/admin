@@ -1,4 +1,4 @@
-import { getApiClient, useApiMutation, useApiQuery, queryKeys } from "@/api";
+import { useApiMutation, useApiQuery, queryKeys } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
 import { uploadFiles } from "@/utils/uploadFile";
 import FormField from "@/components/FormField";
@@ -15,7 +15,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Alert, KeyboardAvoidingView, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default function ProductFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
