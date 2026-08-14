@@ -1,14 +1,26 @@
 import axios, { AxiosError, AxiosInstance, create as createAxios, CreateAxiosDefaults, InternalAxiosRequestConfig } from "axios";
 import i18n from "@/i18n";
 
-import { SERVER_URL } from "@/config/constants";
+import { SERVER_URL, FALLBACK_SERVER_URL } from "@/config/constants";
 import type { ApiConfig } from "./types";
 
 let apiInstance: AxiosInstance | null = null;
 let configCache: ApiConfig = {
   baseURL: process.env.EXPO_PUBLIC_API_URL ?? `${SERVER_URL}/api/v1/`,
+  fallbackBaseURL: `${FALLBACK_SERVER_URL}/api/v1/`,
   timeout: 15000,
 };
+
+async function postWithFallback(path: string, data: unknown) {
+  try {
+    return await axios.post(`${configCache.baseURL}${path}`, data);
+  } catch (error) {
+    if ((error as AxiosError).response || !configCache.fallbackBaseURL) {
+      throw error;
+    }
+    return axios.post(`${configCache.fallbackBaseURL}${path}`, data);
+  }
+}
 
 let isRefreshing = false;
 let failedQueue: {
@@ -84,7 +96,13 @@ function createApiClient(config?: Partial<ApiConfig>): AxiosInstance {
   instance.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
-      const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+      const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _fallback?: boolean };
+
+      if (!error.response && configCache.fallbackBaseURL && !originalRequest._fallback && originalRequest.baseURL?.startsWith(configCache.baseURL)) {
+        originalRequest._fallback = true;
+        originalRequest.baseURL = configCache.fallbackBaseURL;
+        return instance(originalRequest);
+      }
 
       if (error.response?.status === 401 && !originalRequest._retry && configCache.getRefreshToken) {
         const refreshToken = configCache.getRefreshToken();
@@ -108,7 +126,7 @@ function createApiClient(config?: Partial<ApiConfig>): AxiosInstance {
         isRefreshing = true;
 
         try {
-          const response = await axios.post(`${configCache.baseURL}auth/refresh`, { refreshToken });
+          const response = await postWithFallback("auth/refresh", { refreshToken });
           const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
           setApiToken(accessToken);

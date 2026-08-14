@@ -26,6 +26,7 @@ export interface ApiError {
 
 export interface ApiConfig {
   baseURL: string;
+  fallbackBaseURL?: string;
   timeout?: number;
   token?: string;
   onUnauthorized?: () => void;

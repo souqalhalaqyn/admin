@@ -55,7 +55,8 @@
         }
       ],
       ["./plugins/withLocalizedAppLabel.js", { "ar": "ادمن سوق الحلاقين" }],
-      "./plugins/withApkInstaller.js"
+      "./plugins/withApkInstaller.js",
+      "./plugins/withNetworkSecurityConfig.js"
     ],
     "experiments": {
       "typedRoutes": true,
