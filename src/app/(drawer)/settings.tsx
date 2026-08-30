@@ -246,9 +246,10 @@ export default function SettingsScreen() {
                 name: "slider.jpg",
               } as any);
 
-              const upload = await uploadFiles(formData);
-              if (upload.filenames[0]) {
-                setSliderEntries([...sliderEntries, { image: upload.filenames[0] }]);
+              const { promise } = uploadFiles(formData);
+              const upload = await promise;
+              if (upload[0]) {
+                setSliderEntries([...sliderEntries, { image: upload[0] }]);
               }
             } catch (err) {
               Alert.alert(t("common.error"), getErrorMessage(err));

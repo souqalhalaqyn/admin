@@ -1,6 +1,6 @@
 import { getApiClient, useApiQuery } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
-import { uploadFiles } from "@/utils/uploadFile";
+import { uploadFiles, UPLOAD_CANCELLED } from "@/utils/uploadFile";
 import FormField from "@/components/FormField";
 import ImageField from "@/components/ImageField";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -46,12 +46,15 @@ export default function OfferFormScreen() {
     setUploadError(null);
     setUploading(true);
     pendingFormDataRef.current = formData;
+    const { promise, abort } = uploadFiles(formData, setUploadProgress);
+    abortRef.current = abort;
     try {
-      const { filenames, abort } = await uploadFiles(formData, setUploadProgress);
-      abortRef.current = abort;
+      const filenames = await promise;
       return filenames;
     } catch (err: any) {
-      setUploadError(err?.message ?? t("common.uploadError"));
+      if (err?.message !== UPLOAD_CANCELLED) {
+        setUploadError(err?.message ?? t("common.uploadError"));
+      }
       return null;
     }
   }, [t]);

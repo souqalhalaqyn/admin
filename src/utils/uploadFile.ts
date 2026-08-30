@@ -1,54 +1,47 @@
+import { isCancel } from "axios";
 import { getApiClient } from "@/api";
-import i18n from "@/i18n";
 
-export async function uploadFiles(
+export const UPLOAD_CANCELLED = "Upload cancelled";
+
+function mapUploadError(error: unknown): Error {
+  if (isCancel(error)) return new Error(UPLOAD_CANCELLED);
+  const err = error as { response?: { status?: number }; code?: string };
+  if (err.code === "ECONNABORTED") {
+    return new Error("Upload timed out. The file may be too large or your connection is slow.");
+  }
+  if (err.response?.status === 413) {
+    return new Error("File too large. Maximum size is 50MB.");
+  }
+  if (err.response?.status === 429) {
+    return new Error("Too many uploads. Please wait a moment and try again.");
+  }
+  if (!err.response) {
+    return new Error("Network error. Check your connection and try again.");
+  }
+  return new Error(`Upload failed (${err.response.status}). Please try again.`);
+}
+
+export function uploadFiles(
   formData: FormData,
   onProgress?: (percent: number) => void,
-): Promise<{ filenames: string[]; abort: () => void }> {
+): { promise: Promise<string[]>; abort: () => void } {
   const client = getApiClient();
-  const url = (client.defaults.baseURL ?? "") + "upload";
-  const token = client.defaults.headers.common.Authorization as string | undefined;
+  const controller = new AbortController();
 
-  let xhr: XMLHttpRequest;
-
-  const promise = new Promise<string[]>((resolve, reject) => {
-    xhr = new XMLHttpRequest();
-    xhr.open("POST", url);
-    xhr.timeout = 120000;
-    if (token) xhr.setRequestHeader("Authorization", token);
-    xhr.setRequestHeader("Accept-Language", i18n.language === "ar" ? "ar" : "en");
-    xhr.setRequestHeader("x-app", "admin");
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) {
-        onProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
-      }
-    };
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const json = JSON.parse(xhr.responseText);
-          resolve((json?.data ?? []) as string[]);
-        } catch {
-          reject(new Error("Invalid server response"));
+  const promise = client
+    .post<{ data?: string[] }>("upload", formData, {
+      signal: controller.signal,
+      timeout: 120000,
+      onUploadProgress: (e) => {
+        if (e.total && onProgress) {
+          onProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
         }
-      } else if (xhr.status === 413) {
-        reject(new Error("File too large. Maximum size is 50MB."));
-      } else if (xhr.status === 429) {
-        reject(new Error("Too many uploads. Please wait a moment and try again."));
-      } else if (xhr.status === 0) {
-        reject(new Error("Network error. Check your connection and try again."));
-      } else {
-        reject(new Error(`Upload failed (${xhr.status}). Please try again.`));
-      }
-    };
+      },
+    })
+    .then((res) => res.data?.data ?? [])
+    .catch((error) => {
+      throw mapUploadError(error);
+    });
 
-    xhr.onerror = () => reject(new Error("Network error. Check your connection and try again."));
-    xhr.ontimeout = () => reject(new Error("Upload timed out. The file may be too large or your connection is slow."));
-
-    xhr.send(formData);
-  });
-
-  return promise.then((filenames) => ({ filenames, abort: () => xhr!.abort() }));
+  return { promise, abort: () => controller.abort() };
 }

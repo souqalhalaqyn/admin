@@ -1,6 +1,6 @@
 import { useApiMutation, useApiQuery, queryKeys } from "@/api";
 import { getErrorMessage } from "@/api/utils/errorHandler";
-import { uploadFiles } from "@/utils/uploadFile";
+import { uploadFiles, UPLOAD_CANCELLED } from "@/utils/uploadFile";
 import FormField from "@/components/FormField";
 import HSLColorPicker from "@/components/HSLColorPicker";
 import ImageField from "@/components/ImageField";
@@ -53,16 +53,19 @@ export default function ProductFormScreen() {
     setUploadError(null);
     setUploading(true);
     pendingFormDataRef.current = formData;
+    const { promise, abort } = uploadFiles(formData, setUploadProgress);
+    abortRef.current = abort;
     try {
-      const { filenames, abort } = await uploadFiles(formData, setUploadProgress);
-      abortRef.current = abort;
+      const filenames = await promise;
       setImages((prev) => [...prev, ...filenames]);
       setUploading(false);
       setUploadProgress(0);
       abortRef.current = null;
       pendingFormDataRef.current = null;
     } catch (err: any) {
-      setUploadError(err?.message ?? t("common.uploadError"));
+      if (err?.message !== UPLOAD_CANCELLED) {
+        setUploadError(err?.message ?? t("common.uploadError"));
+      }
     }
   }, [t]);
 
